@@ -26,5 +26,8 @@ setup(
     ''',
     python_requires='>=3.7',
     install_requires=[
+        'imutils',
+        'numpy',
+        'opencv-python'
     ]
 )

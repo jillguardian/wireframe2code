@@ -1,0 +1,13 @@
+draw:
+  line:
+    red: 0
+    green: 255
+    blue: 0
+    thickness: 2
+  text:
+    red: 255
+    green: 255
+    blue: 255
+    thickness: 2
+rdp:
+  factor: 0.04
