@@ -1,39 +1,25 @@
 import cv2
-from cv2 import ximgproc
-import imutils
 import numpy as np
 
-from wireframe2code import driver
+
+def find_center(contour):
+    moments = cv2.moments(contour)
+    x = int(moments["m10"] / moments["m00"])
+    y = int(moments["m01"] / moments["m00"])
+    return x, y
 
 
-class Capture:
+def find_vertices(contour):
+    perimeter = cv2.arcLength(contour, True)
+    approximate_curves = cv2.approxPolyDP(contour, 0.04 * perimeter, True)
+    return approximate_curves
 
-    def __init__(self, image):
-        height, width, _ = image.shape
-        if width > 500:
-            image = imutils.resize(image, width=500)
-        self.image = image
 
-    def __preprocess(self):
-        grayscaled = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-        driver.show_image("Grayscaled", grayscaled)
+def count_vertices(contour):
+    vertices = find_vertices(contour)
+    return len(vertices)
 
-        blurred = cv2.GaussianBlur(grayscaled, (5, 5), 0)
-        driver.show_image("Blurred", blurred)
 
-        thresholded = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY_INV)[1]
-        driver.show_image("Thresholded", thresholded)
-
-        dilated = cv2.dilate(thresholded, kernel=None, iterations=1)
-        driver.show_image("Dilated", dilated)
-
-        thinned = ximgproc.thinning(dilated, thinningType=cv2.ximgproc.THINNING_ZHANGSUEN)
-        driver.show_image("Thinned", thinned)
-
-        return dilated
-
-    def contours(self):
-        image = self.__preprocess()
-        contours = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = imutils.grab_contours(contours)
-        return contours
+def bounding_rectangle(contours):
+    contours = np.concatenate(contours)
+    return cv2.boundingRect(contours)
