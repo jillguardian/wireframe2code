@@ -1,8 +1,14 @@
 from wireframe2code import shape
 from wireframe2code import segment
+import imutils
 import argparse
 import cv2
-import imutils
+
+
+def show_image(title, image):
+    cv2.imshow(title, image)
+    cv2.waitKey(0)
+    cv2.destroyWindow(title)
 
 
 def main(args):
@@ -12,23 +18,15 @@ def main(args):
         python center.py --image shapes_and_colors.png
 
     """
-    def resize_contour(contour, factor):
-        contour = contour.astype("float")
-        contour *= factor
-        contour = contour.astype("int")
-        return contour
-
     # Image has to be resized for better approximation and performance
-    image = cv2.imread(args.image)
-    resized_image = imutils.resize(image, width=300)
-    size_factor = image.shape[0] / float(resized_image.shape[0])
+    image = cv2.imread(args.filename)
 
-    contours = segment.find_contours(resized_image)
+    capture = segment.Capture(image)
+    contours = capture.contours()
+
     for contour in contours:
-        vertices_count = shape.count_vertices(contour)
-
-        contour = resize_contour(contour, size_factor)
         x, y = shape.find_center(contour)
+        vertices_count = shape.count_vertices(contour)
 
         # Draw outline
         cv2.drawContours(image, [contour], -1, (0, 255, 0), 2)
@@ -40,17 +38,13 @@ def main(args):
         x, y, w, h = shape.bounding_rectangle(contour)
         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-    # Draw canvas rectangle
-    x, y, w, h = shape.bounding_rectangle(segment.find_contours(image))
-    cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-    cv2.imshow("Shapes found", image)
+    show_image("Output", image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--image", required=True, help="Path to input image")
+    parser.add_argument("-i", "--filename", required=True, help="Path to input image")
     parsed_args, unparsed_args = parser.parse_known_args()
     main(parsed_args)

@@ -28,6 +28,6 @@ setup(
     install_requires=[
         'imutils',
         'numpy',
-        'opencv-python'
+        'opencv-contrib-python'
     ]
 )
