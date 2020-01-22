@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 
 
 def is_square(contour):
@@ -17,4 +16,3 @@ def center(contour):
     x = int(moments["m10"] / moments["m00"])
     y = int(moments["m01"] / moments["m00"])
     return x, y
-

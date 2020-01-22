@@ -151,7 +151,7 @@ class Capture:
         binarized = adaptively_binarize(gamma_corrected, block_size, delta)
         binarized = soften_binarization(self.image, binarized, delta)
         inversed = cv2.threshold(binarized, 127, 255, cv2.THRESH_BINARY_INV)[1]
-        dilated = cv2.dilate(inversed, kernel=None, iterations=3)
+        dilated = cv2.dilate(inversed, kernel=None, iterations=2)
         thinned = ximgproc.thinning(dilated, thinningType=cv2.ximgproc.THINNING_ZHANGSUEN)
 
         return thinned
