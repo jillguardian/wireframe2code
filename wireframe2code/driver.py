@@ -15,7 +15,7 @@ def main(args):
     """
     Example usage::
 
-        python center.py --image shapes_and_colors.png
+        python driver.py --image shapes_and_colors.png
 
     """
     # Image has to be resized for better approximation and performance
@@ -26,20 +26,16 @@ def main(args):
     contours = capture.contours(predicate=lambda contour: cv2.arcLength(contour, True) >= 100)
 
     for contour in contours:
-        x, y = segment.find_center(contour)
-        vertices_count = segment.count_vertices(contour)
+        if not segment.is_square(contour):
+            continue
 
-        # Draw outline
-        cv2.drawContours(image, [contour], -1, (0, 255, 0), 2)
-
-        # Draw vertices count
-        cv2.putText(image, str(vertices_count), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        cv2.drawContours(image, [contour], -1, (255, 0, 0), 2)
+        show_image("Image", image)
 
         # Draw bounding rectangles
         # x, y, w, h = segment.bounding_rectangle(contour)
         # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-    show_image("Image", image)
     cv2.destroyAllWindows()
 
 

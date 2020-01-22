@@ -9,5 +9,3 @@ draw:
     green: 255
     blue: 255
     thickness: 2
-shape:
-  minimum_area: 500
