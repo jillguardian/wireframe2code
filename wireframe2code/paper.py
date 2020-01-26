@@ -1,6 +1,6 @@
-import cv2
 import imutils
 import numpy as np
+from cv2 import cv2
 from cv2 import ximgproc
 
 
@@ -138,9 +138,8 @@ def soften_binarization(image, mask, block_size):
 class Capture:
 
     def __init__(self, image):
-        height, width, _ = image.shape
-        if width > 500:
-            image = imutils.resize(image, width=500)
+        # TODO: Determine optimal image size for better approximation and performance
+        image = imutils.resize(image, width=500)
         self.image = image
 
     def __preprocess(self):
