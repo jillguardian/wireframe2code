@@ -32,6 +32,17 @@ def centroid(contour):
     return x, y
 
 
+def overlap(x1: int, y1: int, x2: int, y2: int) -> int:
+    """
+    :param x1: the x-coordinate of the first segment
+    :param y1: the y-coordinate of the first segment
+    :param x2: the x-coordinate of the second segment
+    :param y2: the y-coordinate of the first segment
+    :return: length of the overlap between the provided segments
+    """
+    return max(0, min(y1, y2) - max(x1, x2))
+
+
 def intersection(rectangle_one, rectangle_two):
     x = max(rectangle_one[0], rectangle_two[0])
     y = max(rectangle_one[1], rectangle_two[1])
@@ -48,29 +59,3 @@ def union(rectangle_one, rectangle_two):
     w = max(rectangle_one[0] + rectangle_one[2], rectangle_two[0] + rectangle_two[2]) - x
     h = max(rectangle_one[1] + rectangle_one[3], rectangle_two[1] + rectangle_two[3]) - y
     return x, y, w, h
-
-
-def is_aligned_horizontally(rectangle_one, rectangle_two):
-    # Get top left x-coordinate, y-coordinate, and the width, and height of each contour's bounding rectangle
-    x1, y1, w1, h1 = rectangle_one
-    x2, y2, h1, h2 = rectangle_two
-
-    # Align both contours vertically
-    x2 = x1
-
-    # Compute area of intersection
-    # TODO
-
-    # If are of intersection is significant, then they are aligned
-    # TODO
-    return False
-
-
-def is_aligned_vertically(contour_one, contour_two):
-    # Get top left x-coordinate, y-coordinate, and the width, and height of each contour's bounding rectangle
-    x1, y1, w1, h1 = cv2.boundingRect(contour_one)
-    x2, y2, h1, h2 = cv2.boundingRect(contour_two)
-
-    # Align both contours horizontally
-    y2 = y1
-    return False

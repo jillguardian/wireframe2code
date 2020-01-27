@@ -139,7 +139,7 @@ class Capture:
 
     def __init__(self, image):
         # TODO: Determine optimal image size for better approximation and performance
-        image = imutils.resize(image, width=500)
+        image = imutils.resize(image, width=400)
         self.image = image
 
     def __preprocess(self):
