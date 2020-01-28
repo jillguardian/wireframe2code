@@ -4,7 +4,7 @@ from os import listdir, sep
 from typing import List, Union
 
 
-def output(source: str, output_directory: str, file_name: str = "index.html") -> str:
+def to_file(source: str, output_directory: str, file_name: str = "index.html") -> str:
     file_path = __write_to_file(source=source, output_directory=output_directory, file_name=file_name)
     resources = __get_resources()
     __copy_files(resources, output_directory)
@@ -44,8 +44,3 @@ def __get_absolute_path(directory: str, paths: Union[str, List[str]] = None) -> 
             path_list.extend(paths)
 
     return path.abspath(sep.join(path_list))
-
-
-if __name__ == "__main__":
-    output("<h1>Hello World</h1>", "../output")
-    pass
