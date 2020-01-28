@@ -102,7 +102,7 @@ def __get_full_code(body: str, column_count: int = 1) -> str:
          }}
          
          .block {{
-            background-color: red;
+            background-color: rgb(69, 169, 212);
          }}
       </style>
       <title>Generated HTML Page</title>
