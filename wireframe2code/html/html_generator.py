@@ -91,19 +91,57 @@ def __get_span(widget: Widget, span_type: Span) -> int:
     return abs(span_type(widget.start) - span_type(widget.end)) + 1
 
 
+def __sort_widgets(widgets: List[Widget]) -> List[Widget]:
+    widgets.sort(key=lambda a: a.start.y)
+    final = []
+
+    for current in range(__get_max_number(widgets, Span.ROW)):
+        filtered = []
+        it = filter(lambda a: a.start.y == current, widgets)
+        for o in it:
+            filtered.append(o)
+
+        filtered.sort(key=lambda a: a.start.x)
+        final.extend(filtered)
+
+        for x in filtered:
+            widgets.remove(x)
+
+    return final
+
+
 if __name__ == "__main__":
+    # widget_list = [
+    #     Widget(Point(0, 0), Point(1, 0)),
+    #     Widget(Point(2, 0), Point(5, 0)),
+    #     Widget(Point(0, 1)),
+    #     Widget(Point(1, 1), Point(1, 3)),
+    #     Widget(Point(2, 1), Point(3, 3)),
+    #     Widget(Point(4, 1)),
+    #     Widget(Point(5, 1)),
+    #     Widget(Point(0, 2), Point(0, 3)),
+    #     Widget(Point(4, 2), Point(5, 3)),
+    #     Widget(Point(0, 4), Point(4, 4)),
+    #     Widget(Point(5, 4)),
+    #     Widget(Point(0, 5), Point(2, 8)),
+    #     Widget(Point(3, 5), Point(5, 5))
+    # ]
     widget_list = [
-        Widget(Point(0, 0), Point(1, 0)),
-        Widget(Point(2, 0), Point(5, 0)),
-        Widget(Point(0, 1)),
+        Widget(Point(0, 4), Point(4, 4)),
+        Widget(Point(0, 5), Point(2, 8)),
+        Widget(Point(5, 1)),
         Widget(Point(1, 1), Point(1, 3)),
+        Widget(Point(0, 2), Point(0, 3)),
+        Widget(Point(3, 5), Point(5, 5)),
+        Widget(Point(0, 0), Point(1, 0)),
+        Widget(Point(0, 1)),
         Widget(Point(2, 1), Point(3, 3)),
         Widget(Point(4, 1)),
-        Widget(Point(5, 1)),
-        Widget(Point(0, 2), Point(0, 3)),
         Widget(Point(4, 2), Point(5, 3)),
-        Widget(Point(0, 4), Point(4, 4))
+        Widget(Point(5, 4)),
+        Widget(Point(2, 0), Point(5, 0))
     ]
+    widget_list = __sort_widgets(widget_list)
     code = __get_full_code(__to_code(widget_list), __get_max_number(widget_list))
     file_path = output(code, "../output")
     webbrowser.open("file://{}".format(file_path))
