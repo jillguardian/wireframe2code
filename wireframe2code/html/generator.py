@@ -30,9 +30,11 @@ class Widget:
         return "Widget{{start={}, end={}}}'".format(self.start, self.end)
 
 
-def create(widgets: List[Widget], output_directory: str, open_in_browser: bool = True) -> None:
+def create(widgets: List[Widget], output_directory: str, open_in_browser: bool = True,
+           title: str = "Generated HTML Page") -> None:
     sorted_widgets = __sort_widgets(widgets)
-    html_code = __get_full_code(__get_html_elements(sorted_widgets), __get_max_number(sorted_widgets))
+    html_code = __get_full_code(body=__get_html_elements(sorted_widgets), title=title,
+                                column_count=__get_max_number(sorted_widgets))
     output_file_path = output.to_file(html_code, output_directory)
 
     if open_in_browser:
@@ -81,7 +83,7 @@ def __sort_widgets(widgets: List[Widget]) -> List[Widget]:
     return sorted_widgets
 
 
-def __get_full_code(body: str, column_count: int = 1) -> str:
+def __get_full_code(body: str, title: str, column_count: int = 1) -> str:
     return """<!doctype html>
 <html lang="en">
    <head>
@@ -89,6 +91,7 @@ def __get_full_code(body: str, column_count: int = 1) -> str:
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
       <!-- Bootstrap CSS -->
+      <link rel="shortcut icon" href="favicon-torocloud.ico" type="image/x-icon" />
       <link rel="stylesheet" href="bootstrap.min.css">
       <link rel="stylesheet" href="style.css">
       <style>
@@ -105,7 +108,7 @@ def __get_full_code(body: str, column_count: int = 1) -> str:
             background-color: rgb(69, 169, 212);
          }}
       </style>
-      <title>Generated HTML Page</title>
+      <title>{2}</title>
    </head>
    <body>
       <div class="gradient-bg"></div>
@@ -116,4 +119,4 @@ def __get_full_code(body: str, column_count: int = 1) -> str:
       </main>
       <script src="bootstrap.min.js"></script>
    </body>
-</html>""".format(body, column_count)
+</html>""".format(body, column_count, title)
