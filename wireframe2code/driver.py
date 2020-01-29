@@ -22,6 +22,7 @@ def main(args):
         image = cv2.imread(args.filename)
 
         if args.interactive:
+            # TODO: Show image processing applied
             html = consume_file(image, preview_symbols)
             cv2.waitKey(0)
         else:
