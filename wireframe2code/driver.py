@@ -1,167 +1,127 @@
+from __future__ import annotations
+
 import argparse
-import logging
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import webbrowser
+from contextlib import contextmanager
 
-from cv2 import cv2
-from collections import namedtuple
-
-import paper
-import segment
-
-
-def show_image(title, image):
-    cv2.imshow(title, image)
-    cv2.waitKey(0)
-    cv2.destroyWindow(title)
+from capture import *
+from wireframe import *
 
 
 def main(args):
-    if args.use_camera and args.filename is not None:
+    if args.camera and args.filename is not None:
         raise ValueError("Camera and image cannot be simultaneously provided")
-    if args.use_camera:
-        capture = cv2.VideoCapture(0)
-        while True:
-            can_read, frame = capture.read()
-            if can_read:
-                process(frame)
-                if cv2.waitKey(25) & 0xFF == ord('q'):
-                    break
-            else:
-                break
-        capture.release()
-        cv2.destroyAllWindows()
+    if args.camera:
+        consume_camera(preview_detection=args.interactive, preview_html=args.interactive)
     elif args.filename is not None:
         image = cv2.imread(args.filename)
-        process(image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+
+        if args.interactive:
+            html = consume_file(image, preview_symbols)
+            cv2.waitKey(0)
+        else:
+            html = consume_file(image)
+
+        # TODO: Write HTML string to file
+        # TODO: Preview generated HTML document
     else:
-        raise Exception("Must provide arguments")
+        raise ValueError("Must provide arguments")
     cv2.destroyAllWindows()
 
 
-def process(image):
-    capture = paper.Capture(image)
+def consume_camera(interval=25, exit_key=None, preview_detection=False, preview_html=False):
+    def callback(image, wireframe):
+        preview_symbols(image, wireframe.symbols)
+        return cv2.waitKey(interval)
+
+    def should_exit(key):
+        if exit_key is not None:
+            return ord(exit_key) == key & 0xFF
+        return key != -1
+
+    capture = cv2.VideoCapture(0)
+    while True:
+        can_read, frame = capture.read()
+        if can_read:
+            html, key = consume_file(frame, callback) if preview_detection else consume_file(frame)
+            # TODO: Write HTML string to file
+            # TODO: Preview generated HTML document
+
+            if key is not None and should_exit(key):
+                break
+        else:
+            logging.error("Can't read from camera")
+            break
+    capture.release()
+    cv2.destroyAllWindows()
+
+
+def consume_file(image, callback=lambda *_, **__: None):
+    capture = Capture(image)
     wireframe = Wireframe(capture)
 
-    image_copy = capture.image.copy()
+    html = wireframe.html()
+    result = callback(capture.image.copy(), wireframe)
+
+    return html, result if result is not None else html
+
+
+def preview_symbols(image, wireframe, title='', color=(0, 0, 255)):
     for symbol in wireframe.symbols:
-        cv2.drawContours(image_copy, [symbol], -1, (0, 255, 0), 2)
-        # x, y, w, h = cv2.boundingRect(symbol)
-        # cv2.rectangle(image_copy, (x, y), (x + w, y + h), (255, 0, 0), 2)
-        show_image("Image", image_copy)
-    wireframe.grid()
+        rectangle = Rectangle(*cv2.boundingRect(symbol))
+        rectangle.draw(image, color)
+    cv2.imshow(title, image)
 
 
-class Wireframe:
-    def __init__(self, capture):
-        # TODO: Get predicate from configuration
-        contours = capture.contours(predicate=lambda contour: cv2.arcLength(contour, True) >= 100)
-        # TODO: Get epsilon constant and minimum contour-area-to-minimum-rectangle-area ratio from configuration
-        squares = [contour for contour in contours if segment.is_quadrangle(contour)]
-        # TODO: Add other supported symbols
+def write_file(content, filename):
+    directory = os.path.dirname(filename)
+    os.makedirs(directory, exist_ok=True)
+    with open(filename, 'w') as file:
+        file.write(content)
 
-        self.symbols = squares
 
-    def grid(self):
-        column_coordinates = self.__column_coordinates()
-        row_coordinates = self.__row_coordinates()
+def preview_preprocessing(capture):
+    images = capture.preprocess()
+    for index, value in enumerate(images):
+        cv2.imshow(index, value)
 
-        if len(self.symbols) != len(column_coordinates):
-            raise AssertionError(f"Found '{len(self.symbols)}' wireframe symbols "
-                                 f"but got '{len(column_coordinates)}' column coordinates")
-        if len(self.symbols) != len(row_coordinates):
-            raise AssertionError(f"Found '{len(self.symbols)}' wireframe symbols "
-                                 f"but got '{len(row_coordinates)}' row coordinates")
 
-        Element = namedtuple('Element', 'starting_column starting_row ending_column ending_row')
+def open_browser(url):
+    if sys.platform == 'darwin':
+        subprocess.Popen(f"open {url}", shell=True)
+    else:
+        webbrowser.open_new_tab(url)
 
-        grid_coordinates = []
-        for i in range(len(self.symbols)):
-            x1, x2 = column_coordinates[i]
-            y1, y2 = row_coordinates[i]
-            grid_coordinates.append(Element(starting_column=x1, starting_row=y1, ending_column=x2, ending_row=y2))
 
-        return grid_coordinates
-
-    def __coordinates(self, transform, sort):
-        def span(index, rectangles):
-            reference = rectangles[index]
-            rectangles = rectangles[:index] + rectangles[index + 1:]
-
-            overlapping_rectangles = 0
-            for other in rectangles:
-                if overlaps(reference, other):
-                    overlapping_rectangles += 1
-            return overlapping_rectangles + 1
-
-        def overlaps(reference_rectangle, other_rectangle):
-            intersection = segment.intersection(reference_rectangle, other_rectangle)
-            intersection_area = intersection[2] * intersection[3]
-
-            if intersection_area == 0:
-                return False
-
-            reference_area = reference_rectangle[2] * reference_rectangle[3]
-            ratio = intersection_area / reference_area
-            return ratio >= 0.40
-
-        if len(self.symbols) == 0:
-            logging.debug("No wireframe symbols found in image")
-            return []
-
-        bounding_rectangles = [cv2.boundingRect(symbol) for symbol in self.symbols]
-        bounding_rectangles = [transform(bounding_rectangle) for bounding_rectangle in bounding_rectangles]
-        bounding_rectangles.sort(key=sort)
-
-        Element = namedtuple('Element', 'i starting_coordinate')
-        reference_element = Element(i=0, starting_coordinate=0)
-
-        coordinates = []
-        for i in range(len(bounding_rectangles)):
-            span = span(i, bounding_rectangles)
-            starting_coordinate = reference_element.starting_coordinate
-
-            if not overlaps(bounding_rectangles[reference_element.i], bounding_rectangles[i]):
-                starting_coordinate = reference_element.starting_coordinate + 1
-
-            ending_coordinate = starting_coordinate + span - 1
-
-            # This way, multi-spanning cells never get to be used for reference
-            if span == 1:
-                reference_element = Element(i=i, starting_coordinate=starting_coordinate)
-
-            coordinates.append((starting_coordinate, ending_coordinate))
-
-        return coordinates
-
-    def __column_coordinates(self):
-        return self.__coordinates(
-            # Use uniform y-coordinates for all bounding rectangles
-            # The y-coordinate can be any number, as long as it's the same across all elements
-            transform=lambda bounding_rectangle: bounding_rectangle[0:1] + (0,) + bounding_rectangle[2:],
-            # Sort by x-coordinate
-            sort=lambda bounding_rectangle: bounding_rectangle[0])
-
-    def __row_coordinates(self):
-        return self.__coordinates(
-            # Use uniform x-coordinates for all bounding rectangles
-            # The x-coordinate can be any number, as long as it's the same across all elements
-            transform=lambda bounding_rectangle: (0,) + bounding_rectangle[1:],
-            # Sort by y-coordinate
-            sort=lambda bounding_rectangle: bounding_rectangle[1])
-
-    def to_html(self):
-        # TODO
-        # Extract wireframe symbols
-        # Create occupancy grid for wireframe symbols
-        # Create HTML rows and columns from occupancy grid
-        pass
+@contextmanager
+def temporary_directory():
+    path = tempfile.mkdtemp()
+    try:
+        yield path
+    finally:
+        try:
+            shutil.rmtree(path)
+        except IOError:
+            logging.error(f"Failed to clean up temporary directory '{path}'")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.DEBUG)
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--image", dest="filename", help="Path to input image")
-    parser.add_argument("-c", "--camera", dest="use_camera", help="Flag for using camera as source",
-                        action='store_true')
+    parser.add_argument("-f", "--filename",
+                        dest="filename", help="Path to input image")
+    parser.add_argument("-c", "--camera",
+                        dest="camera", action='store_true', help="Use camera as source")
+    parser.add_argument("-d", "--destination",
+                        dest="destination_directory", required=True, help="Destination of generated HTML/JS/CSS files")
+    parser.add_argument("-i", "--interactive",
+                        dest="interactive", action='store_true', help="Toggle interactive mode")
+
     parsed_args, unparsed_args = parser.parse_known_args()
     main(parsed_args)
