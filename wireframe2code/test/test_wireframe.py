@@ -46,5 +46,5 @@ def test_wireframe_row_count():
 def test_wireframe_column_count():
     capture = Capture(clean_wireframe_sketch())
     wireframe = Wireframe(capture)
-    assert wireframe.row_count() == 4
+    assert wireframe.column_count() == 4
 
