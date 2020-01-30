@@ -26,8 +26,10 @@ setup(
     ''',
     python_requires='>=3.7',
     install_requires=[
-        'imutils',
         'numpy',
-        'opencv-contrib-python'
+        'imutils',
+        'opencv-contrib-python',
+        'pytest',
+        'more-itertools'
     ]
 )

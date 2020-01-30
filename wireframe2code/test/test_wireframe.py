@@ -30,16 +30,19 @@ def test_can_detect_symbols_correctly_from_clean_input():
     assert len(wireframe.symbols) == 7
 
 
-def test_can_compute_smallest_symbols_by_height():
+def test_can_compute_smallest_symbols_per_row():
     capture = Capture(clean_wireframe_sketch())
     wireframe = Wireframe(capture)
-    assert len(wireframe.basic_rows()) == 4
+    assert len(wireframe.smallest_by_row()) == 4
 
 
-def test_can_compute_smallest_symbols_by_width():
+def test_can_compute_smallest_symbols_per_column():
     capture = Capture(clean_wireframe_sketch())
     wireframe = Wireframe(capture)
-    assert len(wireframe.basic_columns()) == 3
+    rectangles = [Rectangle(*cv2.boundingRect(symbol)) for symbol in wireframe.smallest_by_column()]
+    Rectangle.show_all(rectangles, capture.image.copy())
+    cv2.waitKey(0)
+    assert len(wireframe.smallest_by_column()) == 3
 
 
 def test_can_compute_row_count():

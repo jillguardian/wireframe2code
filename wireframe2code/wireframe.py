@@ -1,6 +1,7 @@
 import logging
 
 from cv2 import cv2
+from more_itertools import pairwise
 
 from shape import is_rectangle
 
@@ -88,7 +89,7 @@ class Wireframe:
     def grid(self):
         pass
 
-    def __basic_elements(self, align, size, threshold=0.55):
+    def __smallest_elements(self, align, size, threshold=0.55):
 
         def parent_of_child(parent: Rectangle, child: Rectangle) -> bool:
             intersection = parent.intersection(child)
@@ -131,34 +132,47 @@ class Wireframe:
             logging.debug("No wireframe symbols found in image")
             return 0
 
-        wrappers = [Rectangle(*cv2.boundingRect(symbol)) for symbol in self.symbols]
-        wrappers = [align(wrapper) for wrapper in wrappers]
+        wrapper_to_symbol = dict((Rectangle(*cv2.boundingRect(symbol)), symbol) for symbol in self.symbols)
+        wrapper_to_symbol = dict((align(rectangle), symbol) for (rectangle, symbol) in wrapper_to_symbol.items())
 
+        wrappers = [*wrapper_to_symbol]
         wrappers.sort(key=size)
         wrappers = filter(wrappers, parent_of_child)
         wrappers = filter(wrappers, duplicate)
 
-        return wrappers
+        return [wrapper_to_symbol[wrapper] for wrapper in wrappers]
 
-    def basic_rows(self):
-        return self.__basic_elements(
+    def smallest_by_row(self):
+        return self.__smallest_elements(
             # Use uniform x-coordinates for all bounding rectangles
             # The x-coordinate can be any number, as long as it's the same across all elements
             align=lambda rectangle: Rectangle(0, rectangle.y, rectangle.width, rectangle.height),
             size=lambda rectangle: rectangle.height)
 
-    def basic_columns(self):
-        return self.__basic_elements(
+    def smallest_by_column(self):
+        return self.__smallest_elements(
             # Use uniform y-coordinates for all bounding rectangles
             # The y-coordinate can be any number, as long as it's the same across all elements
             align=lambda rectangle: Rectangle(rectangle.x, 0, rectangle.width, rectangle.height),
             size=lambda rectangle: rectangle.width)
 
     def column_count(self):
-        return len(self.basic_columns())
+        wrappers = [Rectangle(*cv2.boundingRect(element)) for element in self.smallest_by_column()]
+        wrappers = [Rectangle(0, rectangle.y, rectangle.width, rectangle.height) for rectangle in wrappers]
+        wrappers.sort(key=lambda rectangle: rectangle.x)
+
+        # Calculate the distance between each wrapper
+        distances = [(left.x + left.width) - right.x for (left, right) in pairwise(wrappers)]
+
+        # TODO: Check the average distance
+        # TODO: Check if missing gap
+        # TODO: If missing gap, determine how many elements are missing in the gap,
+        #       based on the size of the smallest element in the collection
+
+        return len(wrappers)
 
     def row_count(self):
-        return len(self.basic_rows())
+        return len(self.smallest_by_row())
 
     def html(self):
         # TODO

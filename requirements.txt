@@ -2,3 +2,4 @@ numpy>=1.18.1
 imutils>=0.5.3
 opencv-contrib-python>=4.1.2.30
 pytest>=5.3.4
+more-itertools>=8.2.0
