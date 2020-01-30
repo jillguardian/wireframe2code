@@ -48,7 +48,7 @@ The following arguments may also be provided in addition to those above:
     - the detected wireframe symbols in their bounding boxes
     - the generated HTML document in browser
 
-## Usage examples
+### Usage examples
 
 ```
 python driver.py -d path/to/output/directory -c -i
@@ -58,10 +58,48 @@ python driver.py -d path/to/output/directory -c -i
 python driver.py -d path/to/output/directory -f path/to/sketch.jpg
 ```
 
-## Input
+### Input
 
 Different images will require different processing techniques.
 This application works well with wireframe sketches on paper; blank ink over white canvas.
 For example:
 
 <img src="https://i.imgur.com/I5jCKay.jpg" width=300 alt="Clean wireframe sketch"/>
+
+## Development
+
+It is recommended to install project dependencies on a virtual environment
+so your global pip libraries remain unaffected while developing.
+
+To do this, [you can use `virtualenv`](https://docs.python-guide.org/dev/virtualenvs/):
+
+1. Install `virtualenv`.
+
+    ```
+   pip install virtualenv
+   ```
+
+2. Create a virtual environment for your project.
+
+    ```
+    cd project
+    virtualenv venv
+    ```
+
+3. Set the Python interpreter of your choice.
+
+    ```
+   virtualenv -p /usr/bin/python3.7 venv venv
+    ```
+
+4. Activate your virtual environment.
+
+    ```
+    source venv/bin/activate
+    ```
+
+5. Once done working, you may deactivate your virtual environment.
+
+    ```
+    deactivate
+    ```
