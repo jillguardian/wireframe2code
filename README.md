@@ -61,7 +61,7 @@ python driver.py -d path/to/output/directory -f path/to/sketch.jpg
 ## Input
 
 Different images will require different processing techniques.
-This application works well with wireframe sketches on paper; in blank ink on a white canvas.
+This application works well with wireframe sketches on paper; blank ink over white canvas.
 For example:
 
 <img src="https://i.imgur.com/I5jCKay.jpg" width=300 alt="Clean wireframe sketch"/>
