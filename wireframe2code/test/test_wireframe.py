@@ -4,7 +4,7 @@ from cv2 import cv2
 
 from capture import Capture
 from wireframe import Wireframe
-from wireframe import Rectangle
+from wireframe import Border
 
 
 def clean_wireframe_sketch():
@@ -18,41 +18,37 @@ def cursed_wireframe_sketch():
 
 
 def test_rectangle_intersection_is_symmetric():
-    r1 = Rectangle(50, 50, 100, 100)
-    r2 = Rectangle(75, 75, 100, 100)
+    r1 = Border(50, 50, 100, 100)
+    r2 = Border(75, 75, 100, 100)
     assert r1.intersection(r2) == r2.intersection(r1)
     assert r2.intersection(r1) == r1.intersection(r2)
 
 
-def test_can_detect_symbols_correctly_from_clean_input():
+def test_can_detect_elements_correctly_of_clean_wireframe_sketch():
     capture = Capture(clean_wireframe_sketch())
     wireframe = Wireframe(capture)
-    assert len(wireframe.symbols) == 7
+    assert len(wireframe.elements) == 7
 
 
-def test_can_compute_smallest_symbols_per_row():
-    capture = Capture(clean_wireframe_sketch())
-    wireframe = Wireframe(capture)
-    assert len(wireframe.smallest_by_row()) == 4
-
-
-def test_can_compute_smallest_symbols_per_column():
-    capture = Capture(clean_wireframe_sketch())
-    wireframe = Wireframe(capture)
-    rectangles = [Rectangle(*cv2.boundingRect(symbol)) for symbol in wireframe.smallest_by_column()]
-    Rectangle.show_all(rectangles, capture.image.copy())
-    cv2.waitKey(0)
-    assert len(wireframe.smallest_by_column()) == 3
-
-
-def test_can_compute_row_count():
+def test_can_compute_row_count_of_clean_wireframe_sketch():
     capture = Capture(clean_wireframe_sketch())
     wireframe = Wireframe(capture)
     assert wireframe.row_count() == 4
 
 
-def test_can_compute_column_count():
+def test_can_compute_column_count_of_clean_wireframe_sketch():
     capture = Capture(clean_wireframe_sketch())
     wireframe = Wireframe(capture)
     assert wireframe.column_count() == 4
 
+
+def test_can_compute_grid_shape_of_clean_wireframe_sketch():
+    capture = Capture(clean_wireframe_sketch())
+    wireframe = Wireframe(capture)
+    assert wireframe.shape() == (4, 4)
+
+
+def test_can_compute_grid_shape_of_cursed_wireframe_sketch():
+    capture = Capture(cursed_wireframe_sketch())
+    wireframe = Wireframe(capture)
+    assert wireframe.shape() == (3, 8)

@@ -1,4 +1,7 @@
 import logging
+from enum import Enum
+from functools import partial
+from capture import Capture
 
 from cv2 import cv2
 from more_itertools import pairwise
@@ -6,7 +9,7 @@ from more_itertools import pairwise
 from shape import is_rectangle
 
 
-class Rectangle:
+class Border:
 
     def __init__(self, x, y, width, height):
         self.x = x
@@ -25,15 +28,15 @@ class Rectangle:
         w = min(self.x + self.width, other.x + other.width) - x
         h = min(self.y + self.height, other.y + other.height) - y
         if w < 0 or h < 0:
-            return Rectangle(0, 0, 0, 0)
-        return Rectangle(x, y, w, h)
+            return Border(0, 0, 0, 0)
+        return Border(x, y, w, h)
 
     def union(self, other):
         x = min(self.x, other.x)
         y = min(self.y, other.y)
         w = max(self.x + self.width, other.x + other.width) - x
         h = max(self.y + self.height, other.y + other.height) - y
-        return Rectangle(x, y, w, h)
+        return Border(x, y, w, h)
 
     def draw(self, image, color=(255, 255, 255), thickness=1):
         cv2.rectangle(image, (self.x, self.y), (self.x + self.width, self.y + self.height), color, thickness)
@@ -71,32 +74,87 @@ class Rectangle:
         return hash(self.__key())
 
 
+class Direction(Enum):
+
+    ROW = \
+        (partial(lambda border: Border(0, border.y, border.width, border.height)),
+         partial(lambda border: border.height),
+         partial(lambda border: border.y),
+         partial(lambda top, bottom: bottom.y - top.y - top.height))
+    COLUMN = \
+        (partial(lambda border: Border(border.x, 0, border.width, border.height)),
+         partial(lambda border: border.width),
+         partial(lambda border: border.x),
+         partial(lambda left, right: right.x - left.x - left.width))
+
+    def __init__(self, snap_function, size_function, coordinate_function, gap_function):
+        self.snap = snap_function
+        self.size = size_function
+        self.coordinate = coordinate_function
+        self.gap = gap_function
+
+
 class Wireframe:
 
-    def __init__(self, capture):
+    def __init__(self, capture: Capture):
         # TODO: Get predicate from configuration
         contours = capture.contours(predicate=lambda contour: cv2.arcLength(contour, True) >= 100)
+
         # TODO: Get epsilon constant and minimum contour-area-to-minimum-rectangle-area ratio from configuration
         rectangles = [contour for contour in contours if is_rectangle(contour)]
-        # TODO: Add other supported symbols
 
-        self.symbols = rectangles
-        self.image = capture.image.copy()
+        # TODO: Add other supported elements
+        self.elements = rectangles
 
     def shape(self):
-        return self.column_count(), self.row_count()
+        return self.row_count(), self.column_count()
 
-    def grid(self):
-        pass
+    def row_count(self) -> int:
+        return self.__reference_count(direction=Direction.ROW)
 
-    def __smallest_elements(self, align, size, threshold=0.55):
+    def column_count(self) -> int:
+        return self.__reference_count(direction=Direction.COLUMN)
 
-        def parent_of_child(parent: Rectangle, child: Rectangle) -> bool:
+    def __reference_count(self, direction: Direction):
+        align = direction.snap
+        size = direction.size
+        coordinate = direction.coordinate
+        gap = direction.gap
+
+        containers = [Wireframe.__border(element) for element in self.__reference_elements(direction)]
+        containers = [align(container) for container in containers]
+        containers.sort(key=coordinate)
+
+        pairs = list(pairwise(containers))
+        gaps = [gap(e1, e2) for (e1, e2) in pairs]
+        pairs_to_distances = dict(zip(pairs, gaps))
+
+        shortest_gap = min(gaps)
+        shortest_border = min(size(container) for container in containers)
+        reference_length = shortest_border + (shortest_gap * 2)
+
+        # TODO: Improve logic for counting spans of 'missing' elements
+        missing = 0
+        for pair, gap in pairs_to_distances.items():
+            missing += int(round(gap / reference_length))
+
+        return len(containers) + missing
+
+    def __reference_elements(self, direction: Direction, threshold: float = 0.55):
+        """
+        Computes and returns the smallest spanning elements in the provided direction.
+        :param threshold: percentage of overlap between two elements to be considered as one element
+        """
+
+        align = direction.snap
+        size = direction.size
+
+        def parent_of_child(parent: Border, child: Border) -> bool:
             intersection = parent.intersection(child)
             intersection_ratio = size(intersection) / size(child)
             return size(parent) > size(child) and intersection_ratio >= threshold
 
-        def duplicate(r1: Rectangle, r2: Rectangle):
+        def duplicate(r1: Border, r2: Border):
             intersection = r1.intersection(r2)
             intersection_ratio_r1 = size(intersection) / size(r1)
             intersection_ratio_r2 = size(intersection) / size(r2)
@@ -109,70 +167,34 @@ class Wireframe:
             while len(unfiltered_wrappers) > 0:
                 reference = unfiltered_wrappers[0]
 
-                # image = self.image.copy()
-                # reference.show(image, color=(0, 255, 0))
-                # cv2.waitKey(0)
-
                 others = unfiltered_wrappers[:]
                 others.remove(reference)
 
-                # Rectangle.show_all(others, image, color=(0, 0, 255))
-                # cv2.waitKey(0)
-
                 unfiltered_wrappers = [other for other in others if not predicate(other, reference)]
-
-                # Rectangle.show_all(unfiltered_wrappers, image)
-                # cv2.waitKey(0)
-
                 wrappers.append(reference)
 
             return wrappers
 
-        if len(self.symbols) == 0:
+        if len(self.elements) == 0:
             logging.debug("No wireframe symbols found in image")
             return 0
 
-        wrapper_to_symbol = dict((Rectangle(*cv2.boundingRect(symbol)), symbol) for symbol in self.symbols)
-        wrapper_to_symbol = dict((align(rectangle), symbol) for (rectangle, symbol) in wrapper_to_symbol.items())
+        border_to_element = dict((Wireframe.__border(element), element) for element in self.elements)
+        border_to_element = dict((align(border), symbol) for (border, symbol) in border_to_element.items())
 
-        wrappers = [*wrapper_to_symbol]
-        wrappers.sort(key=size)
-        wrappers = filter(wrappers, parent_of_child)
-        wrappers = filter(wrappers, duplicate)
+        borders = [*border_to_element]
+        borders.sort(key=size)
+        borders = filter(borders, parent_of_child)
+        borders = filter(borders, duplicate)
 
-        return [wrapper_to_symbol[wrapper] for wrapper in wrappers]
+        return [border_to_element[container] for container in borders]
 
-    def smallest_by_row(self):
-        return self.__smallest_elements(
-            # Use uniform x-coordinates for all bounding rectangles
-            # The x-coordinate can be any number, as long as it's the same across all elements
-            align=lambda rectangle: Rectangle(0, rectangle.y, rectangle.width, rectangle.height),
-            size=lambda rectangle: rectangle.height)
+    @staticmethod
+    def __border(symbol):
+        return Border(*cv2.boundingRect(symbol))
 
-    def smallest_by_column(self):
-        return self.__smallest_elements(
-            # Use uniform y-coordinates for all bounding rectangles
-            # The y-coordinate can be any number, as long as it's the same across all elements
-            align=lambda rectangle: Rectangle(rectangle.x, 0, rectangle.width, rectangle.height),
-            size=lambda rectangle: rectangle.width)
-
-    def column_count(self):
-        wrappers = [Rectangle(*cv2.boundingRect(element)) for element in self.smallest_by_column()]
-        wrappers = [Rectangle(0, rectangle.y, rectangle.width, rectangle.height) for rectangle in wrappers]
-        wrappers.sort(key=lambda rectangle: rectangle.x)
-
-        # Calculate the distance between each wrapper
-        distances = [(left.x + left.width) - right.x for (left, right) in pairwise(wrappers)]
-
-        # TODO: Check the average distance
-        # TODO: Check if missing gap
-        # TODO: If missing gap, determine how many elements are missing in the gap,
-        #       based on the size of the smallest element in the collection
-
-        return len(wrappers)
-
-    def row_count(self):
-        return len(self.smallest_by_row())
+    def grid(self):
+        pass
 
     def html(self):
         # TODO

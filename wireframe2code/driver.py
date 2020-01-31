@@ -23,7 +23,7 @@ def main(args):
 
         if args.interactive:
             # TODO: Show image processing applied
-            html = consume_file(image, preview_symbols)
+            html = consume_file(image, preview_elements)
             cv2.waitKey(0)
         else:
             html = consume_file(image)
@@ -37,7 +37,7 @@ def main(args):
 
 def consume_camera(interval=25, exit_key=None, preview_detection=False, preview_html=False):
     def callback(image, wireframe):
-        preview_symbols(image, wireframe.symbols)
+        preview_elements(image, wireframe.elements)
         return cv2.waitKey(interval)
 
     def should_exit(key):
@@ -72,9 +72,9 @@ def consume_file(image, callback=lambda *_, **__: None):
     return html, result if result is not None else html
 
 
-def preview_symbols(image, wireframe, title='', color=(0, 0, 255)):
-    for symbol in wireframe.symbols:
-        rectangle = Rectangle(*cv2.boundingRect(symbol))
+def preview_elements(image, elements, title='', color=(0, 0, 255)):
+    for element in elements:
+        rectangle = Border(*cv2.boundingRect(element))
         rectangle.draw(image, color)
     cv2.imshow(title, image)
 
