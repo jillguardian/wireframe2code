@@ -74,7 +74,7 @@ def consume_file(image, callback=lambda *_, **__: None):
 
 def preview_elements(image, elements, title='', color=(0, 0, 255)):
     for element in elements:
-        rectangle = Border(*cv2.boundingRect(element))
+        rectangle = Container(*cv2.boundingRect(element))
         rectangle.draw(image, color)
     cv2.imshow(title, image)
 

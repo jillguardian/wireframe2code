@@ -9,7 +9,7 @@ from more_itertools import pairwise
 from shape import is_rectangle
 
 
-class Border:
+class Container:
 
     def __init__(self, x, y, width, height):
         self.x = x
@@ -28,15 +28,15 @@ class Border:
         w = min(self.x + self.width, other.x + other.width) - x
         h = min(self.y + self.height, other.y + other.height) - y
         if w < 0 or h < 0:
-            return Border(0, 0, 0, 0)
-        return Border(x, y, w, h)
+            return Container(0, 0, 0, 0)
+        return Container(x, y, w, h)
 
     def union(self, other):
         x = min(self.x, other.x)
         y = min(self.y, other.y)
         w = max(self.x + self.width, other.x + other.width) - x
         h = max(self.y + self.height, other.y + other.height) - y
-        return Border(x, y, w, h)
+        return Container(x, y, w, h)
 
     def draw(self, image, color=(255, 255, 255), thickness=1):
         cv2.rectangle(image, (self.x, self.y), (self.x + self.width, self.y + self.height), color, thickness)
@@ -77,12 +77,12 @@ class Border:
 class Direction(Enum):
 
     ROW = \
-        (partial(lambda border: Border(0, border.y, border.width, border.height)),
+        (partial(lambda border: Container(0, border.y, border.width, border.height)),
          partial(lambda border: border.height),
          partial(lambda border: border.y),
          partial(lambda top, bottom: bottom.y - top.y - top.height))
     COLUMN = \
-        (partial(lambda border: Border(border.x, 0, border.width, border.height)),
+        (partial(lambda border: Container(border.x, 0, border.width, border.height)),
          partial(lambda border: border.width),
          partial(lambda border: border.x),
          partial(lambda left, right: right.x - left.x - left.width))
@@ -121,7 +121,7 @@ class Wireframe:
         coordinate = direction.coordinate
         gap = direction.gap
 
-        containers = [Wireframe.__border(element) for element in self.__reference_elements(direction)]
+        containers = [Wireframe.__container(element) for element in self.__reference_elements(direction)]
         containers = [align(container) for container in containers]
         containers.sort(key=coordinate)
 
@@ -149,49 +149,49 @@ class Wireframe:
         align = direction.snap
         size = direction.size
 
-        def parent_of_child(parent: Border, child: Border) -> bool:
+        def parent_of_child(parent: Container, child: Container) -> bool:
             intersection = parent.intersection(child)
             intersection_ratio = size(intersection) / size(child)
             return size(parent) > size(child) and intersection_ratio >= threshold
 
-        def duplicate(r1: Border, r2: Border):
+        def duplicate(r1: Container, r2: Container):
             intersection = r1.intersection(r2)
             intersection_ratio_r1 = size(intersection) / size(r1)
             intersection_ratio_r2 = size(intersection) / size(r2)
             return 1 >= intersection_ratio_r1 >= threshold and 1 >= intersection_ratio_r2 >= threshold
 
-        def filter(wrappers, predicate):
-            unfiltered_wrappers = wrappers[:]
-            wrappers = []
+        def filter(containers, predicate):
+            unfiltered_containers = containers[:]
+            containers = []
 
-            while len(unfiltered_wrappers) > 0:
-                reference = unfiltered_wrappers[0]
+            while len(unfiltered_containers) > 0:
+                reference = unfiltered_containers[0]
 
-                others = unfiltered_wrappers[:]
+                others = unfiltered_containers[:]
                 others.remove(reference)
 
-                unfiltered_wrappers = [other for other in others if not predicate(other, reference)]
-                wrappers.append(reference)
+                unfiltered_containers = [other for other in others if not predicate(other, reference)]
+                containers.append(reference)
 
-            return wrappers
+            return containers
 
         if len(self.elements) == 0:
             logging.debug("No wireframe symbols found in image")
             return 0
 
-        border_to_element = dict((Wireframe.__border(element), element) for element in self.elements)
-        border_to_element = dict((align(border), symbol) for (border, symbol) in border_to_element.items())
+        container_to_element = dict((Wireframe.__container(element), element) for element in self.elements)
+        container_to_element = dict((align(border), symbol) for (border, symbol) in container_to_element.items())
 
-        borders = [*border_to_element]
-        borders.sort(key=size)
-        borders = filter(borders, parent_of_child)
-        borders = filter(borders, duplicate)
+        containers = [*container_to_element]
+        containers.sort(key=size)
+        containers = filter(containers, parent_of_child)
+        containers = filter(containers, duplicate)
 
-        return [border_to_element[container] for container in borders]
+        return [container_to_element[container] for container in containers]
 
     @staticmethod
-    def __border(symbol):
-        return Border(*cv2.boundingRect(symbol))
+    def __container(symbol):
+        return Container(*cv2.boundingRect(symbol))
 
     def grid(self):
         pass

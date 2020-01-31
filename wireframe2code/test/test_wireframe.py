@@ -4,7 +4,7 @@ from cv2 import cv2
 
 from capture import Capture
 from wireframe import Wireframe
-from wireframe import Border
+from wireframe import Container
 
 
 def clean_wireframe_sketch():
@@ -18,8 +18,8 @@ def cursed_wireframe_sketch():
 
 
 def test_rectangle_intersection_is_symmetric():
-    r1 = Border(50, 50, 100, 100)
-    r2 = Border(75, 75, 100, 100)
+    r1 = Container(50, 50, 100, 100)
+    r2 = Container(75, 75, 100, 100)
     assert r1.intersection(r2) == r2.intersection(r1)
     assert r2.intersection(r1) == r1.intersection(r2)
 
