@@ -63,7 +63,7 @@ def test_can_draw_container_contour():
 def test_can_detect_elements_correctly_of_clean_wireframe_sketch():
     capture = Capture(clean_wireframe_sketch())
     wireframe = Wireframe(capture)
-    assert len(wireframe.widgets) == 7
+    assert len(wireframe.placeholders) == 7
 
 
 def test_can_compute_row_count_of_clean_wireframe_sketch():
@@ -88,3 +88,13 @@ def test_can_compute_grid_shape_of_cursed_wireframe_sketch():
     capture = Capture(cursed_wireframe_sketch())
     wireframe = Wireframe(capture)
     assert wireframe.shape() == (3, 8)
+
+
+def test_can_compute_grids_of_clean_wireframe_sketch():
+    capture = Capture(clean_wireframe_sketch())
+    wireframe = Wireframe(capture)
+
+    shape = wireframe.shape()
+    grids = wireframe.grids()
+
+    assert len(grids) == shape[0] * shape[1]

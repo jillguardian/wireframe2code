@@ -7,6 +7,7 @@ from typing import Callable
 from typing import List
 from typing import Set
 from typing import Union
+from typing import Tuple
 
 import numpy as np
 from cv2 import cv2
@@ -129,18 +130,24 @@ class Type(Enum):
         return {e.name for e in cls}
 
 
-class Widget:
+class Location:
 
-    def __init__(self, contour: np.ndarray, type: Type = Type.DIV):
-        self.contour = contour
-        self.type = type
-        self.container = Container(*cv2.boundingRect(contour))
+    def __init__(self, start: Tuple[int, int], end: Tuple[int, int]):
+        self.start = start
+        self.end = end
 
     @classmethod
-    def with_contour_and_container(cls, contour: np.ndarray, container: Container):
-        instance = cls(contour)
-        instance.container = container
-        return instance
+    def unknown(cls):
+        return cls((-1, -1), (-1, -1))
+
+
+class Widget:
+
+    def __init__(self, contour: np.ndarray, type: Type, location: Location):
+        self.contour = contour
+        self.container = Container(*cv2.boundingRect(contour))
+        self.type = type
+        self.location = location
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -154,31 +161,36 @@ class Widget:
         return hash(self.container)
 
 
+class PlaceholderWidget(Widget):
+
+    def __init__(self, contour: np.ndarray):
+        super().__init__(contour, Type.DIV, Location.unknown())
+
 class View:
 
     @staticmethod
-    def intersection(w1: Widget, w2: Widget):
-        return Widget(w1.container.intersection(w2.container).contour())
+    def intersection(w1: PlaceholderWidget, w2: PlaceholderWidget):
+        return PlaceholderWidget(w1.container.intersection(w2.container).contour())
 
 
 class RowView(View):
 
     @staticmethod
-    def snap(widget: Widget, x=0) -> Widget:
+    def snap(widget: PlaceholderWidget, x=0) -> PlaceholderWidget:
         container = widget.container
         container = Container(x, container.y, container.width, container.height)
-        return Widget(container.contour())
+        return PlaceholderWidget(container.contour())
 
     @staticmethod
-    def size(widget: Widget) -> int:
+    def size(widget: PlaceholderWidget) -> int:
         return widget.container.height
 
     @staticmethod
-    def coordinate(widget: Widget) -> int:
+    def coordinate(widget: PlaceholderWidget) -> int:
         return widget.container.y
 
     @staticmethod
-    def gap(w1: Widget, w2: Widget) -> int:
+    def gap(w1: PlaceholderWidget, w2: PlaceholderWidget) -> int:
         if w1.container.x != w2.container.x:
             raise ValueError("Widgets are not aligned")
         widgets = [w1, w2]
@@ -189,21 +201,21 @@ class RowView(View):
 class ColumnView(View):
 
     @staticmethod
-    def snap(widget: Widget, y=0) -> Widget:
+    def snap(widget: PlaceholderWidget, y=0) -> PlaceholderWidget:
         container = widget.container
         container = Container(container.x, y, container.width, container.height)
-        return Widget(container.contour())
+        return PlaceholderWidget(container.contour())
 
     @staticmethod
-    def size(widget: Widget) -> int:
+    def size(widget: PlaceholderWidget) -> int:
         return widget.container.width
 
     @staticmethod
-    def coordinate(widget: Widget):
+    def coordinate(widget: PlaceholderWidget):
         return widget.container.x
 
     @staticmethod
-    def gap(w1: Widget, w2: Widget) -> int:
+    def gap(w1: PlaceholderWidget, w2: PlaceholderWidget) -> int:
         if w1.container.y != w2.container.y:
             raise ValueError("Widgets are not aligned")
         widgets = [w1, w2]
@@ -214,6 +226,8 @@ class ColumnView(View):
 class Wireframe:
 
     def __init__(self, capture: Capture):
+        self.source = capture.image.copy()
+
         # TODO: Get predicate from configuration
         contours = capture.contours(predicate=lambda contour: cv2.arcLength(contour, True) >= 100)
 
@@ -222,8 +236,8 @@ class Wireframe:
         logging.debug(f"Found '{len(rectangles)}' rectangles")
 
         # TODO: Add other supported elements
-        self.widgets = {Widget(rectangle) for rectangle in rectangles}
-        logging.debug(f"Found '{len(self.widgets)}' widgets")
+        self.placeholders = {PlaceholderWidget(rectangle) for rectangle in rectangles}
+        logging.debug(f"Found '{len(self.placeholders)}' widgets")
 
     def shape(self):
         return self.row_count(), self.column_count()
@@ -254,24 +268,24 @@ class Wireframe:
 
         return len(widgets) + missing
 
-    def __reference_widgets(self, view: Union[RowView, ColumnView], threshold: float = 0.55) -> Set[Widget]:
+    def __reference_widgets(self, view: Union[RowView, ColumnView], threshold: float = 0.55) -> Set[PlaceholderWidget]:
         """
         Computes and returns the smallest spanning elements in the provided direction.
         :param threshold: percentage of overlap between two elements to be considered as one element
         """
 
-        def parent_of_child(parent: Widget, child: Widget) -> bool:
+        def parent_of_child(parent: PlaceholderWidget, child: PlaceholderWidget) -> bool:
             intersection = view.intersection(parent, child)
             intersection_ratio = view.size(intersection) / view.size(child)
             return view.size(parent) > view.size(child) and intersection_ratio >= threshold
 
-        def duplicate(w1: Widget, w2: Widget):
+        def duplicate(w1: PlaceholderWidget, w2: PlaceholderWidget):
             intersection = view.intersection(w1, w2)
             intersection_ratio_r1 = view.size(intersection) / view.size(w1)
             intersection_ratio_r2 = view.size(intersection) / view.size(w2)
             return 1 >= intersection_ratio_r1 >= threshold and 1 >= intersection_ratio_r2 >= threshold
 
-        def filter(widgets: List[Widget], predicate: Callable[[Widget, Widget], bool]):
+        def filter(widgets: List[PlaceholderWidget], predicate: Callable[[PlaceholderWidget, PlaceholderWidget], bool]):
             unfiltered = widgets[:]
             widgets = []
 
@@ -286,11 +300,11 @@ class Wireframe:
 
             return widgets
 
-        if len(self.widgets) == 0:
-            logging.debug("No wireframe symbols found in image")
-            return 0
+        if len(self.placeholders) == 0:
+            logging.debug("No wireframe widgets found in image")
+            return set()
 
-        copies_to_widgets = {deepcopy(widget): widget for widget in self.widgets}
+        copies_to_widgets = {deepcopy(widget): widget for widget in self.placeholders}
         copies_to_widgets = {view.snap(copy): widget for copy, widget in copies_to_widgets.items()}
 
         copies = [*copies_to_widgets]
@@ -300,8 +314,28 @@ class Wireframe:
 
         return {copies_to_widgets[copy] for copy in copies}
 
-    def grid(self):
-        pass
+    def grids(self):
+        container = self.container()
+        rows, columns = self.shape()
+
+        grid_height = int(container.height / rows)
+        grid_width = int(container.width / columns)
+
+        grids = []
+        for i in range(rows):
+            y = container.y + (grid_height * i)
+            for j in range(columns):
+                x = container.x + (grid_width * j)
+                grid = Container(x, y, grid_width, grid_height)
+                grids.append(grid)
+
+        return grids
+
+    def container(self) -> Container:
+        container = next(iter(self.placeholders)).container
+        for widget in self.placeholders:
+            container = container.union(widget.container)
+        return container
 
     def html(self):
         # TODO
