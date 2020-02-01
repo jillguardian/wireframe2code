@@ -165,9 +165,6 @@ class RowView(View):
 
     @staticmethod
     def snap(widget: Widget, x=0) -> Widget:
-        if widget.type is not Type.DIV:
-            raise NotImplementedError(f"Could only move widgets of type '{Type.DIV}'")
-
         container = widget.container
         container = Container(x, container.y, container.width, container.height)
         return Widget(container.contour())
@@ -193,9 +190,6 @@ class ColumnView(View):
 
     @staticmethod
     def snap(widget: Widget, y=0) -> Widget:
-        if widget.type is not Type.DIV:
-            raise NotImplementedError(f"Could only move widgets of type '{Type.DIV}'")
-
         container = widget.container
         container = Container(container.x, y, container.width, container.height)
         return Widget(container.contour())
