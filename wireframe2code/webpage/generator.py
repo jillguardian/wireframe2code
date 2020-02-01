@@ -1,7 +1,11 @@
 import webbrowser
 from typing import List
 from enum import Enum
-from wireframe2code.html import output
+
+from bs4 import BeautifulSoup
+
+from webpage.elements import Element, Attribute
+from wireframe2code.webpage import output
 
 
 class Position(Enum):
@@ -22,7 +26,8 @@ class Point:
 
 
 class Widget:
-    def __init__(self, start: Point, end: Point = None) -> None:
+    def __init__(self, element: Element, start: Point, end: Point = None) -> None:
+        self.element = element
         self.start = start
         self.end = end if end is not None else start
 
@@ -52,7 +57,11 @@ def __get_html_element(widget: Widget) -> str:
         if span_value > 1:
             styles.append("grid-{}: {} span;".format(position.name.lower(), span_value))
 
-    return "<div class=\"block\" style=\"{}\"></div>".format("".join(styles))
+    attributes = [
+        Attribute("class", "block"),
+        Attribute("style", "".join(styles))
+    ]
+    return Element(name="div", attributes=attributes, content=widget.element.to_string()).to_string()
 
 
 def __get_html_elements(widgets: List[Widget]) -> str:
@@ -84,7 +93,7 @@ def __sort_widgets(widgets: List[Widget]) -> List[Widget]:
 
 
 def __get_full_code(body: str, title: str, column_count: int = 1) -> str:
-    return """<!doctype html>
+    html = """<!doctype html>
 <html lang="en">
    <head>
       <!-- Required meta tags -->
@@ -120,3 +129,4 @@ def __get_full_code(body: str, title: str, column_count: int = 1) -> str:
       <script src="bootstrap.min.js"></script>
    </body>
 </html>""".format(body, column_count, title)
+    return BeautifulSoup(html).prettify()
