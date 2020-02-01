@@ -66,22 +66,6 @@ def test_can_detect_elements_correctly_of_clean_wireframe_sketch():
     assert len(wireframe.widgets) == 7
 
 
-def test_can_compute_row_reference_widgets_of_clean_wireframe_sketch():
-    capture = Capture(clean_wireframe_sketch())
-    wireframe = Wireframe(capture)
-    references = wireframe.reference_widgets(view=RowView())
-    # TODO: Use proper coordinates for assertion
-    assert len(references) == 4
-
-
-def test_can_compute_column_reference_widgets_of_clean_wireframe_sketch():
-    capture = Capture(clean_wireframe_sketch())
-    wireframe = Wireframe(capture)
-    references = wireframe.reference_widgets(view=ColumnView())
-    # TODO: Use proper coordinates for assertion
-    assert len(references) == 3
-
-
 def test_can_compute_row_count_of_clean_wireframe_sketch():
     capture = Capture(clean_wireframe_sketch())
     wireframe = Wireframe(capture)

@@ -235,7 +235,7 @@ class Wireframe:
         return self.__reference_count(ColumnView())
 
     def __reference_count(self, view):
-        widgets = self.reference_widgets(view)
+        widgets = self.__reference_widgets(view)
         widgets = [view.snap(widget) for widget in widgets]
         widgets.sort(key=view.coordinate)
 
@@ -254,7 +254,7 @@ class Wireframe:
 
         return len(widgets) + missing
 
-    def reference_widgets(self, view: Union[RowView, ColumnView], threshold: float = 0.55) -> Set[Widget]:
+    def __reference_widgets(self, view: Union[RowView, ColumnView], threshold: float = 0.55) -> Set[Widget]:
         """
         Computes and returns the smallest spanning elements in the provided direction.
         :param threshold: percentage of overlap between two elements to be considered as one element
