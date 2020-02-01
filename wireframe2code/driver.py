@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import shutil
 import subprocess
@@ -9,8 +10,10 @@ import tempfile
 import webbrowser
 from contextlib import contextmanager
 
-from capture import *
-from wireframe import *
+from cv2 import cv2
+
+from capture import Capture
+from wireframe import Wireframe
 
 
 def main(args):
@@ -37,7 +40,7 @@ def main(args):
 
 def consume_camera(interval=25, exit_key=None, preview_detection=False, preview_html=False):
     def callback(image, wireframe):
-        preview_elements(image, wireframe.elements)
+        preview_elements(image, wireframe)
         return cv2.waitKey(interval)
 
     def should_exit(key):
@@ -72,10 +75,9 @@ def consume_file(image, callback=lambda *_, **__: None):
     return html, result if result is not None else html
 
 
-def preview_elements(image, elements, title='', color=(0, 0, 255)):
-    for element in elements:
-        rectangle = Container(*cv2.boundingRect(element))
-        rectangle.draw(image, color)
+def preview_elements(image, wireframe, title='', color=(0, 0, 255)):
+    for widget in wireframe.widgets:
+        widget.container.draw(image)
     cv2.imshow(title, image)
 
 
