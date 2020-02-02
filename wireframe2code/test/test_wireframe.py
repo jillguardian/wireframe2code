@@ -7,6 +7,7 @@ from pytest import fail
 from capture import Capture
 from wireframe import Container
 from wireframe import Wireframe
+from wireframe import Location
 
 
 def clean_wireframe_sketch():
@@ -96,3 +97,20 @@ def test_can_compute_grids_of_clean_wireframe_sketch():
     grids = wireframe.grids()
 
     assert len(grids) == shape[0] * shape[1]
+
+
+def test_widget_locations_of_clean_wireframe_sketch():
+    capture = Capture(clean_wireframe_sketch())
+    wireframe = Wireframe(capture)
+    actual = {widget.location for widget in wireframe.widgets()}
+    expected = {
+        Location((0, 0), (1, 1)),
+        Location((0, 2)),
+        Location((0, 3), (2, 3)),
+        Location((2, 0)),
+        Location((2, 1)),
+        Location((1, 2), (2, 2)),
+        Location((3, 0), (3, 3))
+    }
+
+    assert actual == expected

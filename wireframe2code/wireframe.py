@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import logging
-from copy import deepcopy
 from enum import Enum
 from typing import Callable
 from typing import List
 from typing import Set
-from typing import Union
 from typing import Tuple
+from typing import Union
 
 import numpy as np
 from cv2 import cv2
@@ -15,7 +14,6 @@ from more_itertools import pairwise
 
 from capture import Capture
 from shape import is_rectangle
-from enum import auto
 
 
 class Container:
@@ -133,13 +131,28 @@ class Type(Enum):
 
 class Location:
 
-    def __init__(self, start: Tuple[int, int], end: Tuple[int, int]):
+    def __init__(self, start: Tuple[int, int], end: Tuple[int, int] = None):
         self.start = start
-        self.end = end
+        self.end = start if end is None else end
 
     @classmethod
     def unknown(cls):
         return cls((-1, -1), (-1, -1))
+
+    def __key(self):
+        return self.start, self.end
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__key() == other.__key()
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash(self.__key())
+
+    def __repr__(self):
+        return f"({', '.join(map(str, self.start))}), ({', '.join(map(str, self.end))})"
 
 
 class Widget:
@@ -167,13 +180,25 @@ class PlaceholderWidget(Widget):
     def __init__(self, contour: np.ndarray):
         super().__init__(contour, Type.DIV, Location.unknown())
 
+    def occupies(self, container: Container, threshold=1):
+        if not 1 > threshold > 0:
+            raise ValueError("'threshold' must be a value between 0 and 1")
 
-class RowPlaceholderWidget(Widget):
+        intersection = self.container.intersection(container)
+
+        intersection_area = intersection.width * intersection.height
+        container_area = container.width * container.height
+        ratio = intersection_area / container_area
+
+        return 1 >= ratio >= threshold
+
+
+class RowPlaceholderWidget(PlaceholderWidget):
 
     def __init__(self, widget: PlaceholderWidget):
         container = widget.container
         container = Container(0, container.y, container.width, container.height)
-        super().__init__(container.contour(), Type.DIV, Location.unknown())
+        super().__init__(container.contour())
 
     def size(self):
         return self.container.height
@@ -199,12 +224,12 @@ class RowPlaceholderWidget(Widget):
         return intersection.height
 
 
-class ColumnPlaceholderWidget(Widget):
+class ColumnPlaceholderWidget(PlaceholderWidget):
 
     def __init__(self, widget: PlaceholderWidget):
         container = widget.container
         container = Container(container.x, 0, container.width, container.height)
-        super().__init__(container.contour(), Type.DIV, Location.unknown())
+        super().__init__(container.contour())
 
     def size(self):
         return self.container.width
@@ -328,7 +353,33 @@ class Wireframe:
         return {copies_to_widgets[copy] for copy in copies}
 
     def widgets(self) -> Set[Widget]:
-        pass
+
+        def point(index: int):
+            quotient, remainder = divmod(index, columns)
+            return remainder, quotient
+
+        rows, columns = self.shape()
+        widgets = set()
+
+        grids = self.grids()
+        for grid in grids:
+            grid.draw(self.source)
+
+        for placeholder in self.placeholders:
+            placeholder.container.draw(self.source, color=(255, 0, 0))
+            # cv2.imshow('', self.source)
+            # cv2.waitKey(0)
+
+            occupied = [index for index, grid in enumerate(grids) if placeholder.occupies(grid, threshold=0.60)]
+
+            start = occupied[0]
+            end = occupied[-1]
+
+            location = Location(point(start), point(end))
+            widget = Widget(placeholder.contour, placeholder.type, location)
+            widgets.add(widget)
+
+        return widgets
 
     def grids(self) -> List[Container]:
         container = self.container()
