@@ -15,6 +15,7 @@ from more_itertools import pairwise
 
 from capture import Capture
 from shape import is_rectangle
+from enum import auto
 
 
 class Container:
@@ -166,61 +167,73 @@ class PlaceholderWidget(Widget):
     def __init__(self, contour: np.ndarray):
         super().__init__(contour, Type.DIV, Location.unknown())
 
-class View:
 
-    @staticmethod
-    def intersection(w1: PlaceholderWidget, w2: PlaceholderWidget):
-        return PlaceholderWidget(w1.container.intersection(w2.container).contour())
+class RowPlaceholderWidget(Widget):
 
-
-class RowView(View):
-
-    @staticmethod
-    def snap(widget: PlaceholderWidget, x=0) -> PlaceholderWidget:
+    def __init__(self, widget: PlaceholderWidget):
         container = widget.container
-        container = Container(x, container.y, container.width, container.height)
-        return PlaceholderWidget(container.contour())
+        container = Container(0, container.y, container.width, container.height)
+        super().__init__(container.contour(), Type.DIV, Location.unknown())
 
-    @staticmethod
-    def size(widget: PlaceholderWidget) -> int:
-        return widget.container.height
+    def size(self):
+        return self.container.height
 
-    @staticmethod
-    def coordinate(widget: PlaceholderWidget) -> int:
-        return widget.container.y
+    def coordinate(self):
+        return self.container.y
 
-    @staticmethod
-    def gap(w1: PlaceholderWidget, w2: PlaceholderWidget) -> int:
-        if w1.container.x != w2.container.x:
+    def gap(self, other: Widget):
+        if self.container.x != other.container.x:
             raise ValueError("Widgets are not aligned")
-        widgets = [w1, w2]
-        widgets.sort(key=RowView.coordinate)
-        return widgets[1].container.y - widgets[0].container.y - widgets[0].container.height
+
+        if self.container.y < other.container.y:
+            top = self.container
+            bottom = other.container
+        else:
+            top = other.container
+            bottom = self.container
+
+        return bottom.y - top.y - top.height
+
+    def overlap(self, other):
+        intersection = self.container.intersection(other.container)
+        return intersection.height
 
 
-class ColumnView(View):
+class ColumnPlaceholderWidget(Widget):
 
-    @staticmethod
-    def snap(widget: PlaceholderWidget, y=0) -> PlaceholderWidget:
+    def __init__(self, widget: PlaceholderWidget):
         container = widget.container
-        container = Container(container.x, y, container.width, container.height)
-        return PlaceholderWidget(container.contour())
+        container = Container(container.x, 0, container.width, container.height)
+        super().__init__(container.contour(), Type.DIV, Location.unknown())
 
-    @staticmethod
-    def size(widget: PlaceholderWidget) -> int:
-        return widget.container.width
+    def size(self):
+        return self.container.width
 
-    @staticmethod
-    def coordinate(widget: PlaceholderWidget):
-        return widget.container.x
+    def coordinate(self):
+        return self.container.x
 
-    @staticmethod
-    def gap(w1: PlaceholderWidget, w2: PlaceholderWidget) -> int:
-        if w1.container.y != w2.container.y:
+    def gap(self, other: Widget):
+        if self.container.y != other.container.y:
             raise ValueError("Widgets are not aligned")
-        widgets = [w1, w2]
-        widgets.sort(key=RowView.coordinate)
-        return widgets[1].container.x - widgets[0].container.x - widgets[0].container.height
+
+        if self.container.x < other.container.x:
+            left = self.container
+            right = other.container
+        else:
+            left = other.container
+            right = self.container
+
+        return right.x - left.x - left.width
+
+    def overlap(self, other: ColumnPlaceholderWidget):
+        intersection = self.container.intersection(other.container)
+        return intersection.width
+
+
+class Direction(Enum):
+
+    ROW = RowPlaceholderWidget
+    COLUMN = ColumnPlaceholderWidget
 
 
 class Wireframe:
@@ -243,22 +256,22 @@ class Wireframe:
         return self.row_count(), self.column_count()
 
     def row_count(self) -> int:
-        return self.__reference_count(RowView())
+        return self.__reference_count(Direction.ROW)
 
     def column_count(self) -> int:
-        return self.__reference_count(ColumnView())
+        return self.__reference_count(Direction.COLUMN)
 
-    def __reference_count(self, view):
-        widgets = self.__reference_widgets(view)
-        widgets = [view.snap(widget) for widget in widgets]
-        widgets.sort(key=view.coordinate)
+    def __reference_count(self, direction: Direction) -> int:
+        widgets = self.__reference_widgets(direction)
+        widgets = list([direction.value(widget) for widget in widgets])
+        widgets.sort(key=direction.value.coordinate)
 
         pairs = list(pairwise(widgets))
-        gaps = [view.gap(e1, e2) for (e1, e2) in pairs]
+        gaps = [w1.gap(w2) for (w1, w2) in pairs]
         pairs_to_distances = dict(zip(pairs, gaps))
 
         shortest_gap = min(gaps)
-        shortest_border = min(view.size(widget) for widget in widgets)
+        shortest_border = min(widget.size() for widget in widgets)
         reference_length = shortest_border + (shortest_gap * 2)
 
         # TODO: Improve logic for counting spans of 'missing' elements
@@ -268,24 +281,25 @@ class Wireframe:
 
         return len(widgets) + missing
 
-    def __reference_widgets(self, view: Union[RowView, ColumnView], threshold: float = 0.55) -> Set[PlaceholderWidget]:
+    def __reference_widgets(self, direction: Direction, threshold: float = 0.55)\
+            -> Set[Union[RowPlaceholderWidget, ColumnPlaceholderWidget]]:
         """
         Computes and returns the smallest spanning elements in the provided direction.
         :param threshold: percentage of overlap between two elements to be considered as one element
         """
 
-        def parent_of_child(parent: PlaceholderWidget, child: PlaceholderWidget) -> bool:
-            intersection = view.intersection(parent, child)
-            intersection_ratio = view.size(intersection) / view.size(child)
-            return view.size(parent) > view.size(child) and intersection_ratio >= threshold
+        def parent_of_child(parent: direction.value, child: direction.value) -> bool:
+            intersection = parent.overlap(child)
+            intersection_ratio = intersection / child.size()
+            return parent.size() > child.size() and intersection_ratio >= threshold
 
-        def duplicate(w1: PlaceholderWidget, w2: PlaceholderWidget):
-            intersection = view.intersection(w1, w2)
-            intersection_ratio_r1 = view.size(intersection) / view.size(w1)
-            intersection_ratio_r2 = view.size(intersection) / view.size(w2)
+        def duplicate(w1: direction.value, w2: direction.value):
+            intersection = w1.overlap(w2)
+            intersection_ratio_r1 = intersection / w1.size()
+            intersection_ratio_r2 = intersection / w2.size()
             return 1 >= intersection_ratio_r1 >= threshold and 1 >= intersection_ratio_r2 >= threshold
 
-        def filter(widgets: List[PlaceholderWidget], predicate: Callable[[PlaceholderWidget, PlaceholderWidget], bool]):
+        def filter(widgets: List[direction.value], predicate: Callable[[direction.value, direction.value], bool]):
             unfiltered = widgets[:]
             widgets = []
 
@@ -304,17 +318,19 @@ class Wireframe:
             logging.debug("No wireframe widgets found in image")
             return set()
 
-        copies_to_widgets = {deepcopy(widget): widget for widget in self.placeholders}
-        copies_to_widgets = {view.snap(copy): widget for copy, widget in copies_to_widgets.items()}
+        copies_to_widgets = {direction.value(widget): widget for widget in self.placeholders}
 
         copies = [*copies_to_widgets]
-        copies.sort(key=view.size)
+        copies.sort(key=direction.value.size)
         copies = filter(copies, parent_of_child)
         copies = filter(copies, duplicate)
 
         return {copies_to_widgets[copy] for copy in copies}
 
-    def grids(self):
+    def widgets(self) -> Set[Widget]:
+        pass
+
+    def grids(self) -> List[Container]:
         container = self.container()
         rows, columns = self.shape()
 

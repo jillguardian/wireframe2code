@@ -5,9 +5,7 @@ from cv2 import cv2
 from pytest import fail
 
 from capture import Capture
-from wireframe import ColumnView
 from wireframe import Container
-from wireframe import RowView
 from wireframe import Wireframe
 
 
