@@ -30,6 +30,7 @@ setup(
         'imutils',
         'opencv-contrib-python',
         'pytest',
-        'more-itertools'
+        'more-itertools',
+        'beautifulsoup4'
     ]
 )

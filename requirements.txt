@@ -3,3 +3,4 @@ imutils>=0.5.3
 opencv-contrib-python>=4.1.2.30
 pytest>=5.3.4
 more-itertools>=8.2.0
+beautifulsoup4>=4.8.2

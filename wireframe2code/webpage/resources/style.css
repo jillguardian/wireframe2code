@@ -1,0 +1,20 @@
+body {
+	color: white;
+}
+
+.gradient-bg {
+	height: 100%;
+	width: 100%;
+	background: #71236e;
+	background: -webkit-linear-gradient(295deg, rgba(113, 35, 110, 1) 0, rgba(16, 26, 65, 1) 50%);
+	background: -o-linear-gradient(295deg, rgba(113, 35, 110, 1) 0, rgba(16, 26, 65, 1) 50%);
+	background: linear-gradient(155deg, rgba(113, 35, 110, 1) 0, rgba(16, 26, 65, 1) 50%);
+	background-blend-mode: color;
+	background-size: cover;
+	background-repeat: no-repeat !important;
+	z-index: -1;
+	display: block;
+	position: fixed;
+	left: 0;
+	top: 0;
+}
