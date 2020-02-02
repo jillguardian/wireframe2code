@@ -132,6 +132,10 @@ class Type(Enum):
 class Location:
 
     def __init__(self, start: Tuple[int, int], end: Tuple[int, int] = None):
+        """
+        :param start: the starting location of a widget from a grid, in the format: row number, column number
+        :param end: the ending location of a widget from a grid, in the format: row number, column number
+        """
         self.start = start
         self.end = start if end is None else end
 
