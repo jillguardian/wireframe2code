@@ -41,6 +41,8 @@ class Html:
 
     def __init__(self, directory):
         self.directory = Path(directory)
+        self.auto_reload = False
+        self.reload_interval = 1000  # milliseconds
 
     @staticmethod
     def __resources_directory():
@@ -63,6 +65,11 @@ class Html:
         base = cls.__resources_directory()
         return {(base / filename).resolve() for filename in filenames}
 
+    def enable_auto_reload(self, reload_interval: int = None):
+        self.auto_reload = True
+        if reload_interval:
+            self.reload_interval = reload_interval
+
     def write(self, wireframe: Wireframe):
 
         def create_directory():
@@ -77,7 +84,10 @@ class Html:
             environment.trim_blocks = True
 
             template = environment.get_template(self.__template_filename())
-            return template.render(widgets=widgets, rows=rows, columns=columns)
+            auto_reload = str(self.auto_reload).lower()
+            reload_interval = self.reload_interval
+            return template.render(widgets=widgets, rows=rows, columns=columns, autoReload=auto_reload,
+                                   reloadInterval=reload_interval)
 
         def write_html():
             filename = (self.directory / 'index.html').resolve()

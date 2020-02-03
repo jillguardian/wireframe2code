@@ -28,5 +28,12 @@
             </div>
         </main>
     <script src="bootstrap.min.js"></script>
+    <script>
+        ( function() {
+            if( {{ autoReload }} ) {
+                setInterval( () => location.reload(), {{ reloadInterval }} );
+            }
+        } )();
+    </script>
     </body>
 </html>

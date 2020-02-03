@@ -38,7 +38,7 @@ def consume_camera(destination: str, interval: int = 25, exit_key: chr = None):
     while True:
         can_read, frame = capture.read()
         if can_read:
-            _, wireframe = write_html(frame, destination)
+            _, wireframe = write_html(frame, destination, auto_reload=True)
 
             preview_widgets(wireframe.source, wireframe)
 
@@ -53,11 +53,14 @@ def consume_camera(destination: str, interval: int = 25, exit_key: chr = None):
     cv2.destroyAllWindows()
 
 
-def write_html(image, destination):
+def write_html(image, destination, auto_reload: bool = False):
     capture = Capture(image)
     wireframe = Wireframe(capture)
 
     html = Html(destination)
+    if auto_reload:
+        html.enable_auto_reload()
+
     html.write(wireframe)
 
     return capture, wireframe
