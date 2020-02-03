@@ -302,9 +302,10 @@ class Wireframe:
         gaps = [w1.gap(w2) for (w1, w2) in pairs]
         pairs_to_distances = dict(zip(pairs, gaps))
 
+        shortest_widget = min(widget.size() for widget in widgets)
         shortest_gap = min(gaps)
-        shortest_border = min(widget.size() for widget in widgets)
-        reference_length = shortest_border + (shortest_gap * 2)
+        shortest_gap = int(shortest_widget / 4) if shortest_gap > shortest_widget else shortest_gap
+        reference_length = shortest_widget + (shortest_gap * 2)
 
         # TODO: Improve logic for counting spans of 'missing' elements
         missing = 0
