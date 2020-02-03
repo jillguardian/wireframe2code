@@ -4,5 +4,4 @@ opencv-contrib-python>=4.1.2.30
 pytest>=5.3.5
 more-itertools>=8.2.0
 beautifulsoup4>=4.8.2
-yattag>=1.13.2
 jinja2>=2.11.1
