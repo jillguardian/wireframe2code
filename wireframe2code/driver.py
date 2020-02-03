@@ -40,7 +40,6 @@ def consume_camera(destination: str, interval: int = 25, exit_key: chr = None):
         if can_read:
             _, wireframe = write_html(frame, destination)
 
-            open_browser(destination + '/index.html')
             preview_widgets(wireframe.source, wireframe)
 
             key = cv2.waitKey(interval)

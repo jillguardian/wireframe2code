@@ -288,13 +288,14 @@ class Wireframe:
 
     def __reference_count(self, direction: Direction) -> int:
         widgets = self.__reference_widgets(direction)
-        if len(widgets) == 0:
-            return 0
+        if len(widgets) <= 1:
+            return len(widgets)
 
         widgets = list([direction.value(widget) for widget in widgets])
         widgets.sort(key=direction.value.coordinate)
 
         pairs = list(pairwise(widgets))
+
         gaps = [w1.gap(w2) for (w1, w2) in pairs]
         pairs_to_distances = dict(zip(pairs, gaps))
 
@@ -367,6 +368,8 @@ class Wireframe:
 
         for placeholder in self.placeholders:
             occupied = [index for index, grid in enumerate(grids) if placeholder.occupies(grid, threshold=0.60)]
+            if len(occupied) == 0:
+                continue
 
             start = occupied[0]
             end = occupied[-1]
