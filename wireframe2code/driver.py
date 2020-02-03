@@ -106,7 +106,6 @@ def consume_file(filename, destination: str, debug: bool = False):
         preview_grids()
 
 
-
 def open_browser(url):
     if sys.platform == 'darwin':
         subprocess.Popen(f"open {url}", shell=True)

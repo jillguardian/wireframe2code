@@ -288,6 +288,9 @@ class Wireframe:
 
     def __reference_count(self, direction: Direction) -> int:
         widgets = self.__reference_widgets(direction)
+        if len(widgets) == 0:
+            return 0
+
         widgets = list([direction.value(widget) for widget in widgets])
         widgets.sort(key=direction.value.coordinate)
 
@@ -378,6 +381,9 @@ class Wireframe:
         container = self.container()
         rows, columns = self.shape()
 
+        if rows is 0 or columns is 0:
+            return []
+
         grid_height = int(container.height / rows)
         grid_width = int(container.width / columns)
 
@@ -392,6 +398,9 @@ class Wireframe:
         return grids
 
     def container(self) -> Container:
+        if len(self.placeholders) == 0:
+            return Container.empty()
+
         container = next(iter(self.placeholders)).container
         for widget in self.placeholders:
             container = container.union(widget.container)
