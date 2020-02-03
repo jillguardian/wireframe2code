@@ -119,8 +119,8 @@ class Location:
 
     def __init__(self, start: Tuple[int, int], end: Tuple[int, int] = None):
         """
-        :param start: the starting location of a widget from a grid, in the format: row number, column number
-        :param end: the ending location of a widget from a grid, in the format: row number, column number
+        :param start: the starting location of a widget from a grid, in the format: column number, row number
+        :param end: the ending location of a widget from a grid, in the format: column number, row number
         """
         self.start = start
         self.end = start if end is None else end
@@ -165,13 +165,13 @@ class Widget:
         return hash(self.container)
 
     def colspan(self):
-        starting_column = self.location.start[1]
-        ending_column = self.location.end[1]
+        starting_column = self.location.start[0]
+        ending_column = self.location.end[0]
         return ending_column - starting_column + 1
 
     def rowspan(self):
-        starting_row = self.location.start[0]
-        ending_row = self.location.end[0]
+        starting_row = self.location.start[1]
+        ending_row = self.location.end[1]
         return ending_row - starting_row + 1
 
 
@@ -360,16 +360,9 @@ class Wireframe:
 
         rows, columns = self.shape()
         widgets = set()
-
         grids = self.grids()
-        for grid in grids:
-            grid.draw(self.source)
 
         for placeholder in self.placeholders:
-            placeholder.container.draw(self.source, color=(255, 0, 0))
-            # cv2.imshow('', self.source)
-            # cv2.waitKey(0)
-
             occupied = [index for index, grid in enumerate(grids) if placeholder.occupies(grid, threshold=0.60)]
 
             start = occupied[0]

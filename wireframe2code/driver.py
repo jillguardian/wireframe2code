@@ -10,36 +10,26 @@ from cv2 import cv2
 
 from sketch.capture import Capture
 from sketch.wireframe import Wireframe
+from web.writer import Html
 
 
 def main(args):
     if args.camera and args.filename is not None:
         raise ValueError("Camera and image cannot be simultaneously provided")
+
     if args.camera:
-        consume_camera(preview_detection=args.interactive, preview_html=args.interactive)
+        consume_camera(args.output)
     elif args.filename is not None:
-        image = cv2.imread(args.filename)
-
-        if args.interactive:
-            # TODO: Show image processing applied
-            html = consume_file(image, preview_elements)
-            cv2.waitKey(0)
-        else:
-            html = consume_file(image)
-
-        # TODO: Write HTML string to file
-        # TODO: Preview generated HTML document
+        consume_file(args.filename, args.output, args.debug)
     else:
         raise ValueError("Must provide arguments")
+
     cv2.destroyAllWindows()
 
 
-def consume_camera(interval=25, exit_key=None, preview_detection=False, preview_html=False):
-    def callback(image, wireframe):
-        preview_elements(image, wireframe)
-        return cv2.waitKey(interval)
+def consume_camera(destination: str, interval: int = 25, exit_key: chr = None):
 
-    def should_exit(key):
+    def should_exit():
         if exit_key is not None:
             return ord(exit_key) == key & 0xFF
         return key != -1
@@ -48,60 +38,94 @@ def consume_camera(interval=25, exit_key=None, preview_detection=False, preview_
     while True:
         can_read, frame = capture.read()
         if can_read:
-            html, key = consume_file(frame, callback) if preview_detection else consume_file(frame)
-            # TODO: Write HTML string to file
-            # TODO: Preview generated HTML document
+            _, wireframe = write_html(frame, destination)
 
-            if key is not None and should_exit(key):
+            open_browser(destination + '/index.html')
+            preview_widgets(wireframe.source, wireframe)
+
+            key = cv2.waitKey(interval)
+            if should_exit():
                 break
         else:
             logging.error("Can't read from camera")
             break
+
     capture.release()
     cv2.destroyAllWindows()
 
 
-def consume_file(image, callback=lambda *_, **__: None):
+def write_html(image, destination):
     capture = Capture(image)
     wireframe = Wireframe(capture)
 
-    html = wireframe.html()
-    result = callback(capture.image.copy(), wireframe)
+    html = Html(destination)
+    html.write(wireframe)
 
-    return html, result if result is not None else html
+    return capture, wireframe
 
 
-def preview_elements(image, wireframe, title='', color=(0, 0, 255)):
-    for widget in wireframe.widgets:
-        widget.container.draw(image)
+def preview_widgets(image, wireframe, title='Bounding Rectangles', color=(0, 255, 0)):
+    for widget in wireframe.widgets():
+        widget.container.draw(image, color=color)
     cv2.imshow(title, image)
 
 
-def preview_preprocessing(capture):
-    images = capture.preprocess()
-    for index, value in enumerate(images):
-        cv2.imshow(index, value)
+def consume_file(filename, destination: str, debug: bool = False):
+
+    def preview_preprocessing():
+        for image in [capture.image] + capture.preprocess():
+            cv2.imshow('Preprocessing', image)
+            cv2.waitKey(0)
+
+    def preview_contours():
+        image = capture.image.copy()
+        cv2.drawContours(image, capture.contours(), -1, color=(0, 255, 0))
+        cv2.imshow('Contours', image)
+        cv2.waitKey(0)
+
+    def preview_grids():
+        image = capture.image.copy()
+        for grid in wireframe.grids():
+            grid.draw(image)
+        cv2.imshow('Grids', image)
+        cv2.waitKey(0)
+
+    source = cv2.imread(filename)
+
+    capture, wireframe = write_html(source, destination)
+    open_browser(destination + '/index.html')
+
+    if debug:
+        preview_preprocessing()
+        preview_contours()
+
+    preview_widgets(wireframe.source, wireframe)
+    cv2.waitKey(0)
+
+    if debug:
+        preview_grids()
+
 
 
 def open_browser(url):
     if sys.platform == 'darwin':
         subprocess.Popen(f"open {url}", shell=True)
     else:
-        webbrowser.open_new_tab(url)
+        webbrowser.open(url, new=0)
 
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.DEBUG)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--filename",
-                        dest="filename", help="Path to input image")
-    parser.add_argument("-c", "--camera",
-                        dest="camera", action='store_true', help="Use camera as source")
-    parser.add_argument("-d", "--destination",
-                        dest="destination_directory", required=True, help="Destination of generated HTML/JS/CSS files")
-    parser.add_argument("-i", "--interactive",
-                        dest="interactive", action='store_true', help="Toggle interactive mode")
+    parser.add_argument('-f', '--filename', type=str,
+                        dest='filename', help='Path to input image')
+    parser.add_argument('-c', '--camera',
+                        action='store_true', help='Use camera as source')
+    parser.add_argument('-o', '--output', type=str,
+                        required=True, help='Destination of generated HTML/JS/CSS files')
+    parser.add_argument('-d', '--debug',
+                        action='store_true', help='')
 
     parsed_args, unparsed_args = parser.parse_known_args()
     main(parsed_args)

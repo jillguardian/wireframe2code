@@ -18,13 +18,13 @@ class Capture:
         delta = 25
 
         gamma_corrected = Capture.__adjust_gamma(self.image)
-        binarized = Capture.__adaptively_binarize(gamma_corrected, block_size, delta)
-        binarized = Capture.__soften_binarization(self.image, binarized, block_size)
-        inversed = cv2.threshold(binarized, 127, 255, cv2.THRESH_BINARY_INV)[1]
+        adaptively_binarized = Capture.__adaptively_binarize(gamma_corrected, block_size, delta)
+        softened_binarization = Capture.__soften_binarization(self.image, adaptively_binarized, block_size)
+        inversed = cv2.threshold(softened_binarization, 127, 255, cv2.THRESH_BINARY_INV)[1]
         dilated = cv2.dilate(inversed, kernel=None, iterations=1)
         thinned = ximgproc.thinning(dilated, thinningType=cv2.ximgproc.THINNING_ZHANGSUEN)
 
-        return [gamma_corrected, binarized, inversed, dilated, thinned]
+        return [gamma_corrected, adaptively_binarized, softened_binarization, inversed, dilated, thinned]
 
     @staticmethod
     def __adjust_gamma(image, gamma=1.2):

@@ -38,12 +38,12 @@ def test_sort_widgets_by_location(wireframe):
     actual = [widget.location for widget in widgets]
     expected = [
         Location((0, 0), (1, 1)),
-        Location((0, 2)),
-        Location((0, 3), (2, 3)),
-        Location((1, 2), (2, 2)),
         Location((2, 0)),
+        Location((3, 0), (3, 3)),
         Location((2, 1)),
-        Location((3, 0), (3, 3))
+        Location((0, 2)),
+        Location((1, 2), (2, 2)),
+        Location((0, 3), (2, 3)),
     ]
     assert actual == expected
 

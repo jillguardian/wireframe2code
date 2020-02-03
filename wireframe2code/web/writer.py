@@ -25,13 +25,13 @@ def sort(widgets):
         return widget.location.start[0]
 
     widgets = list(widgets)
-    widgets.sort(key=starting_column)
+    widgets.sort(key=starting_row)
 
     sorted_widgets = []
 
-    for row, columns in groupby(widgets, starting_column):
+    for row, columns in groupby(widgets, starting_row):
         columns = list(columns)
-        columns.sort(key=starting_row)
+        columns.sort(key=starting_column)
         sorted_widgets.extend(columns)
 
     return sorted_widgets
