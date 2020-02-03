@@ -344,7 +344,6 @@ class Wireframe:
             return widgets
 
         if len(self.placeholders) == 0:
-            logging.debug("No wireframe widgets found in image")
             return set()
 
         copies_to_widgets = {direction.value(widget): widget for widget in self.placeholders}
