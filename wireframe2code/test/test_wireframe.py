@@ -1,30 +1,32 @@
 import os
 
 import numpy as np
+import pytest
 from cv2 import cv2
 from pytest import fail
 
-from capture import Capture
-from wireframe import Container
-from wireframe import Wireframe
-from wireframe import Location
+from sketch.capture import Capture
+from sketch.wireframe import Container
+from sketch.wireframe import Wireframe
+from sketch.wireframe import Location
 
 
-def clean_wireframe_sketch():
-    path = os.path.join(os.path.dirname(__file__), 'clean_wireframe_sketch.jpg')
-    return cv2.imread(path)
+@pytest.fixture(scope="module")
+def wireframe_sketch():
+    path = os.path.join(os.path.dirname(__file__), 'resources/clean_wireframe_sketch.jpg')
+    yield cv2.imread(path)
 
 
-def cursed_wireframe_sketch():
-    path = os.path.join(os.path.dirname(__file__), 'cursed_wireframe_sketch.jpg')
-    return cv2.imread(path)
+@pytest.fixture(scope="module")
+def canvas():
 
+    def _make(width, height, color=(255, 255, 255)):
+        image = np.zeros((height, width, 3), np.uint8)
+        color = tuple(reversed(color))
+        image[:] = color
+        return image
 
-def canvas(width, height, color=(255, 255, 255)):
-    image = np.zeros((height, width, 3), np.uint8)
-    color = tuple(reversed(color))
-    image[:] = color
-    return image
+    return _make
 
 
 def test_container_points_are_returned_in_clockwise_order():
@@ -49,7 +51,7 @@ def test_container_contour():
     assert np.array_equal(container.contour(), expected)
 
 
-def test_can_draw_container_contour():
+def test_can_draw_container_contour(canvas):
     background = canvas(20, 20)
     container = Container(10, 5, 5, 5)
 
@@ -59,38 +61,32 @@ def test_can_draw_container_contour():
         fail("Can't draw")
 
 
-def test_can_detect_elements_correctly_of_clean_wireframe_sketch():
-    capture = Capture(clean_wireframe_sketch())
+def test_can_detect_elements_correctly_of_clean_wireframe_sketch(wireframe_sketch):
+    capture = Capture(wireframe_sketch)
     wireframe = Wireframe(capture)
     assert len(wireframe.placeholders) == 7
 
 
-def test_can_compute_row_count_of_clean_wireframe_sketch():
-    capture = Capture(clean_wireframe_sketch())
+def test_can_compute_row_count_of_clean_wireframe_sketch(wireframe_sketch):
+    capture = Capture(wireframe_sketch)
     wireframe = Wireframe(capture)
     assert wireframe.row_count() == 4
 
 
-def test_can_compute_column_count_of_clean_wireframe_sketch():
-    capture = Capture(clean_wireframe_sketch())
+def test_can_compute_column_count_of_clean_wireframe_sketch(wireframe_sketch):
+    capture = Capture(wireframe_sketch)
     wireframe = Wireframe(capture)
     assert wireframe.column_count() == 4
 
 
-def test_can_compute_grid_shape_of_clean_wireframe_sketch():
-    capture = Capture(clean_wireframe_sketch())
+def test_can_compute_grid_shape_of_clean_wireframe_sketch(wireframe_sketch):
+    capture = Capture(wireframe_sketch)
     wireframe = Wireframe(capture)
     assert wireframe.shape() == (4, 4)
 
 
-def test_can_compute_grid_shape_of_cursed_wireframe_sketch():
-    capture = Capture(cursed_wireframe_sketch())
-    wireframe = Wireframe(capture)
-    assert wireframe.shape() == (3, 8)
-
-
-def test_can_compute_grids_of_clean_wireframe_sketch():
-    capture = Capture(clean_wireframe_sketch())
+def test_can_compute_grids_of_clean_wireframe_sketch(wireframe_sketch):
+    capture = Capture(wireframe_sketch)
     wireframe = Wireframe(capture)
 
     shape = wireframe.shape()
@@ -99,8 +95,8 @@ def test_can_compute_grids_of_clean_wireframe_sketch():
     assert len(grids) == shape[0] * shape[1]
 
 
-def test_widget_locations_of_clean_wireframe_sketch():
-    capture = Capture(clean_wireframe_sketch())
+def test_widget_locations_of_clean_wireframe_sketch(wireframe_sketch):
+    capture = Capture(wireframe_sketch)
     wireframe = Wireframe(capture)
     actual = {widget.location for widget in wireframe.widgets()}
     expected = {

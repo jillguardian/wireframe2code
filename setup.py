@@ -31,6 +31,7 @@ setup(
         'opencv-contrib-python',
         'pytest',
         'more-itertools',
-        'beautifulsoup4'
+        'beautifulsoup4',
+        'jinja2'
     ]
 )

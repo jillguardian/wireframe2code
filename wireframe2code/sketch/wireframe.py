@@ -12,8 +12,9 @@ import numpy as np
 from cv2 import cv2
 from more_itertools import pairwise
 
-from capture import Capture
-from shape import is_rectangle
+from sketch.capture import Capture
+from sketch.shape import is_rectangle
+from web.element import Tag
 
 
 class Container:
@@ -114,21 +115,6 @@ class Container:
         return hash(self.__key())
 
 
-class Type(Enum):
-    IMAGE = "img"
-    PARAGRAPH = "p"
-    BUTTON = "button"
-    INPUT = "input"
-    DIV = "div"
-
-    def __init__(self, tag_name):
-        self.tag_name = tag_name
-
-    @classmethod
-    def all(cls):
-        return {e.name for e in cls}
-
-
 class Location:
 
     def __init__(self, start: Tuple[int, int], end: Tuple[int, int] = None):
@@ -161,10 +147,10 @@ class Location:
 
 class Widget:
 
-    def __init__(self, contour: np.ndarray, type: Type, location: Location):
+    def __init__(self, contour: np.ndarray, tag: Tag, location: Location):
         self.contour = contour
         self.container = Container(*cv2.boundingRect(contour))
-        self.type = type
+        self.tag = tag
         self.location = location
 
     def __eq__(self, other):
@@ -178,11 +164,21 @@ class Widget:
         # For now, we'll assume two instances are identical if their containers are equal.
         return hash(self.container)
 
+    def colspan(self):
+        starting_column = self.location.start[1]
+        ending_column = self.location.end[1]
+        return ending_column - starting_column + 1
+
+    def rowspan(self):
+        starting_row = self.location.start[0]
+        ending_row = self.location.end[0]
+        return ending_row - starting_row + 1
+
 
 class PlaceholderWidget(Widget):
 
     def __init__(self, contour: np.ndarray):
-        super().__init__(contour, Type.DIV, Location.unknown())
+        super().__init__(contour, Tag.DIV, Location.unknown())
 
     def occupies(self, container: Container, threshold=1):
         if not 1 > threshold > 0:
@@ -380,7 +376,7 @@ class Wireframe:
             end = occupied[-1]
 
             location = Location(point(start), point(end))
-            widget = Widget(placeholder.contour, placeholder.type, location)
+            widget = Widget(placeholder.contour, placeholder.tag, location)
             widgets.add(widget)
 
         return widgets
@@ -407,10 +403,3 @@ class Wireframe:
         for widget in self.placeholders:
             container = container.union(widget.container)
         return container
-
-    def html(self):
-        # TODO
-        # Extract wireframe symbols
-        # Create occupancy grid for wireframe symbols
-        # Create HTML rows and columns from occupancy grid
-        return """<html><head><title>Wireframe2Code</title></head></html>"""

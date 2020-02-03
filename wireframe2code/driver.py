@@ -2,18 +2,14 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
-import shutil
 import subprocess
 import sys
-import tempfile
 import webbrowser
-from contextlib import contextmanager
 
 from cv2 import cv2
 
-from capture import Capture
-from wireframe import Wireframe
+from sketch.capture import Capture
+from sketch.wireframe import Wireframe
 
 
 def main(args):
@@ -81,13 +77,6 @@ def preview_elements(image, wireframe, title='', color=(0, 0, 255)):
     cv2.imshow(title, image)
 
 
-def write_file(content, filename):
-    directory = os.path.dirname(filename)
-    os.makedirs(directory, exist_ok=True)
-    with open(filename, 'w') as file:
-        file.write(content)
-
-
 def preview_preprocessing(capture):
     images = capture.preprocess()
     for index, value in enumerate(images):
@@ -99,18 +88,6 @@ def open_browser(url):
         subprocess.Popen(f"open {url}", shell=True)
     else:
         webbrowser.open_new_tab(url)
-
-
-@contextmanager
-def temporary_directory():
-    path = tempfile.mkdtemp()
-    try:
-        yield path
-    finally:
-        try:
-            shutil.rmtree(path)
-        except IOError:
-            logging.error(f"Failed to clean up temporary directory '{path}'")
 
 
 if __name__ == "__main__":

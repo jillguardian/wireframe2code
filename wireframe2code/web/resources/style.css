@@ -18,3 +18,14 @@ body {
 	left: 0;
 	top: 0;
 }
+
+.block {
+    background-color: rgb(69, 169, 212);
+}
+
+.wrapper {
+    display: grid;
+    grid-gap: 25px;
+    height: 90vh;
+    width: 100%;
+}
