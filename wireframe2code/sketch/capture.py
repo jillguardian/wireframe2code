@@ -161,5 +161,5 @@ class Capture:
         image = self.preprocess()[-1]
         contours = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours = imutils.grab_contours(contours)
-        contours[:] = [contour for contour in contours if predicate(contour)]
+        contours = [contour for contour in contours if predicate(contour)]
         return contours

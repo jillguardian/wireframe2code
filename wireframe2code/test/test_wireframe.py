@@ -18,6 +18,12 @@ def wireframe_sketch():
 
 
 @pytest.fixture(scope="module")
+def gapped_wireframe_sketch():
+    path = os.path.join(os.path.dirname(__file__), 'resources/gapped_wireframe_sketch.jpg')
+    yield cv2.imread(path)
+
+
+@pytest.fixture(scope="module")
 def canvas():
 
     def _make(width, height, color=(255, 255, 255)):
@@ -71,6 +77,12 @@ def test_can_compute_row_count_of_clean_wireframe_sketch(wireframe_sketch):
     capture = Capture(wireframe_sketch)
     wireframe = Wireframe(capture)
     assert wireframe.row_count() == 4
+
+
+def test_can_compute_row_count_of_gapped_wireframe_sketch(gapped_wireframe_sketch):
+    capture = Capture(gapped_wireframe_sketch)
+    wireframe = Wireframe(capture)
+    assert wireframe.row_count() == 3
 
 
 def test_can_compute_column_count_of_clean_wireframe_sketch(wireframe_sketch):

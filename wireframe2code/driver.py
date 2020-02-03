@@ -10,6 +10,7 @@ from cv2 import cv2
 
 from sketch.capture import Capture
 from sketch.wireframe import Wireframe
+from sketch.shape import is_rectangle
 from web.writer import Html
 
 
@@ -77,12 +78,20 @@ def consume_file(filename, destination: str, debug: bool = False):
             cv2.waitKey(0)
 
     def preview_contours():
-        image = capture.image.copy()
-        cv2.drawContours(image, capture.contours(), -1, color=(0, 255, 0))
+        cv2.drawContours(image, capture.contours(), -1, color=(255, 255, 255))
         cv2.imshow('Contours', image)
         cv2.waitKey(0)
 
+    def preview_squares():
+        for placeholder in wireframe.placeholders:
+            cv2.drawContours(image, [placeholder.contour], -1, color=(0, 255, 0))
+        cv2.imshow('Squares', image)
+        cv2.waitKey(0)
+
     def preview_grids():
+        image = capture.image
+        for placeholder in wireframe.placeholders:
+            cv2.drawContours(image, [placeholder.contour], -1, color=(0, 255, 0))
         for grid in wireframe.grids():
             grid.draw(image)
         cv2.imshow('Grids', image)
@@ -91,16 +100,18 @@ def consume_file(filename, destination: str, debug: bool = False):
     source = cv2.imread(filename)
 
     capture, wireframe = write_html(source, destination)
+    image = capture.image.copy()
+
     open_browser(destination + '/index.html')
-    image = wireframe.source.copy()
 
     if debug:
         preview_preprocessing()
         preview_contours()
+        preview_squares()
         preview_grids()
-
-    preview_widgets(image, wireframe)
-    cv2.waitKey(0)
+    else:
+        preview_widgets(image, wireframe)
+        cv2.waitKey(0)
 
 
 def open_browser(url):
