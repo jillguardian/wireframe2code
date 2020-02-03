@@ -174,11 +174,14 @@ class Widget:
         ending_row = self.location.end[1]
         return ending_row - starting_row + 1
 
+    def empty(self):
+        return np.array_equal(self.container.contour(), self.contour)
+
 
 class PlaceholderWidget(Widget):
 
-    def __init__(self, contour: np.ndarray):
-        super().__init__(contour, Tag.DIV, Location.unknown())
+    def __init__(self, contour: np.ndarray, location=Location.unknown()):
+        super().__init__(contour, Tag.DIV, location)
 
     def occupies(self, container: Container, threshold=1):
         if not 1 > threshold > 0:
@@ -357,6 +360,12 @@ class Wireframe:
 
     def widgets(self) -> Set[Widget]:
 
+        def location(indices: List[int]) -> Location:
+            start = indices[0]
+            end = indices[-1]
+
+            return Location(point(start), point(end))
+
         def point(index: int):
             quotient, remainder = divmod(index, columns)
             return remainder, quotient
@@ -365,16 +374,18 @@ class Wireframe:
         widgets = set()
         grids = self.grids()
 
+        unoccupied = range(len(grids))
         for placeholder in self.placeholders:
             occupied = [index for index, grid in enumerate(grids) if placeholder.occupies(grid, threshold=0.35)]
+            unoccupied = [index for index in unoccupied if index not in occupied]
             if len(occupied) == 0:
                 continue
 
-            start = occupied[0]
-            end = occupied[-1]
+            widget = Widget(placeholder.contour, placeholder.tag, location(occupied))
+            widgets.add(widget)
 
-            location = Location(point(start), point(end))
-            widget = Widget(placeholder.contour, placeholder.tag, location)
+        for index in unoccupied:
+            widget = PlaceholderWidget(grids[index].contour(), location([index]))
             widgets.add(widget)
 
         return widgets

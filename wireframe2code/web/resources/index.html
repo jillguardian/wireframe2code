@@ -9,7 +9,7 @@
         <style>
         .wrapper {
             grid-template-columns: repeat({{ columns }}, auto);
-            grid-template-rows: auto auto auto auto;
+            grid-template-rows: repeat({{ rows }}, auto);
         }
         </style>
     </head>
@@ -21,8 +21,9 @@
                 {% for widget in widgets -%}
                     {%- set colspan = widget.colspan() -%}
                     {%- set rowspan = widget.rowspan() -%}
-                    <div class="block" style="{{- 'grid-column: ' ~ colspan ~ ' span;' if colspan > 1 -}}
-                                              {{- 'grid-row: ' ~ rowspan ~ ' span;' if rowspan > 1 -}}"></div>
+                    <div class="block {{- 'placeholder' if widget.empty() -}}"
+                         style="{{- 'grid-column: ' ~ colspan ~ ' span;' if colspan > 1 -}}
+                                {{- 'grid-row: ' ~ rowspan ~ ' span;' if rowspan > 1 -}}"></div>
                 {% endfor %}
 
             </div>

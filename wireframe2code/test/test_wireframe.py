@@ -91,6 +91,12 @@ def test_can_compute_column_count_of_clean_wireframe_sketch(wireframe_sketch):
     assert wireframe.column_count() == 4
 
 
+def test_can_compute_column_count_of_gapped_wireframe_sketch(gapped_wireframe_sketch):
+    capture = Capture(gapped_wireframe_sketch)
+    wireframe = Wireframe(capture)
+    assert wireframe.column_count() == 3
+
+
 def test_can_compute_grid_shape_of_clean_wireframe_sketch(wireframe_sketch):
     capture = Capture(wireframe_sketch)
     wireframe = Wireframe(capture)
@@ -119,6 +125,22 @@ def test_widget_locations_of_clean_wireframe_sketch(wireframe_sketch):
         Location((2, 1)),
         Location((1, 2), (2, 2)),
         Location((3, 0), (3, 3))
+    }
+
+    assert actual == expected
+
+
+def test_widget_locations_of_gapped_wireframe_sketch(gapped_wireframe_sketch):
+    capture = Capture(gapped_wireframe_sketch)
+    wireframe = Wireframe(capture)
+    actual = {widget.location for widget in wireframe.widgets()}
+    expected = {
+        Location((0, 0), (0, 2)),
+        Location((1, 0)),
+        Location((2, 0)),
+        Location((1, 1)),
+        Location((2, 1)),
+        Location((1, 2), (2, 2))
     }
 
     assert actual == expected

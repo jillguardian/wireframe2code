@@ -10,7 +10,6 @@ from cv2 import cv2
 
 from sketch.capture import Capture
 from sketch.wireframe import Wireframe
-from sketch.shape import is_rectangle
 from web.writer import Html
 
 

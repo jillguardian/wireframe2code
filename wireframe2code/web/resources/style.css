@@ -20,7 +20,13 @@ body {
 }
 
 .block {
-    background-color: rgb(69, 169, 212);
+    border: 5px solid rgb(255, 255, 255);
+    opacity: 0.5;
+}
+
+.block.placeholder {
+    border: none
+    opacity: 1;
 }
 
 .wrapper {
