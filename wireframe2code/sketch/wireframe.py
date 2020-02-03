@@ -366,7 +366,7 @@ class Wireframe:
         grids = self.grids()
 
         for placeholder in self.placeholders:
-            occupied = [index for index, grid in enumerate(grids) if placeholder.occupies(grid, threshold=0.60)]
+            occupied = [index for index, grid in enumerate(grids) if placeholder.occupies(grid, threshold=0.35)]
             if len(occupied) == 0:
                 continue
 

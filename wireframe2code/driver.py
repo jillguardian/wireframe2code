@@ -83,7 +83,6 @@ def consume_file(filename, destination: str, debug: bool = False):
         cv2.waitKey(0)
 
     def preview_grids():
-        image = capture.image.copy()
         for grid in wireframe.grids():
             grid.draw(image)
         cv2.imshow('Grids', image)
@@ -93,16 +92,15 @@ def consume_file(filename, destination: str, debug: bool = False):
 
     capture, wireframe = write_html(source, destination)
     open_browser(destination + '/index.html')
+    image = wireframe.source.copy()
 
     if debug:
         preview_preprocessing()
         preview_contours()
-
-    preview_widgets(wireframe.source, wireframe)
-    cv2.waitKey(0)
-
-    if debug:
         preview_grids()
+
+    preview_widgets(image, wireframe)
+    cv2.waitKey(0)
 
 
 def open_browser(url):
