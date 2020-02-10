@@ -71,7 +71,7 @@ For example:
 It is recommended to install project dependencies on a virtual environment
 so your global pip libraries remain unaffected while developing.
 
-To do this, [you can use `virtualenv`](https://docs.python-guide.org/dev/virtualenvs/):
+To do this, [you can use `virtualenv`](https://docs.python-guide.org/dev/virtualenvs/).
 
 1. Install `virtualenv`.
 
@@ -79,26 +79,13 @@ To do this, [you can use `virtualenv`](https://docs.python-guide.org/dev/virtual
    pip install virtualenv
    ```
 
-2. Create a virtual environment for your project.
-
-    ```
-    cd project
-    virtualenv venv
-    ```
-
-3. Set the Python interpreter of your choice.
-
-    ```
-   virtualenv -p /usr/bin/python3.7 venv venv
-    ```
-
-4. Activate your virtual environment.
+2. Activate the project's configured virtual environment.
 
     ```
     source venv/bin/activate
     ```
 
-5. Once done working, you may deactivate your virtual environment.
+3. Once done working, you may deactivate your virtual environment.
 
     ```
     deactivate
