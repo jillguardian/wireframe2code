@@ -8,3 +8,7 @@ and for identifying and solving navigation and functionality problems early in t
 When building applications, there’s a turning point where you have to start building the user interface
 from your wireframe. Typically, this process is expensive, time-consuming, tedious, and repetitive.
 But what if you could generate source code straight from your hand-drawn design mock-ups?
+
+---
+
+This project is by no means complete. I did it only to learn Python.
